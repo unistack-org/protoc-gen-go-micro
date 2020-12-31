@@ -3,6 +3,7 @@ package main // import "moul.io/protoc-gen-gotemplate"
 import (
 	"io/ioutil"
 	"log"
+	"net/url"
 	"os"
 	"strings"
 
@@ -49,14 +50,11 @@ func main() {
 		all               = false
 		singlePackageMode = false
 		fileMode          = false
+		templateRepo      = ""
 	)
 	if parameter := g.Request.GetParameter(); parameter != "" {
 		for _, param := range strings.Split(parameter, ",") {
 			parts := strings.Split(param, "=")
-			if len(parts) != 2 {
-				log.Printf("Err: invalid parameter: %q", param)
-				continue
-			}
 			switch parts[0] {
 			case "template_dir":
 				templateDir = parts[1]
@@ -94,6 +92,12 @@ func main() {
 				default:
 					log.Printf("Err: invalid value for file-mode: %q", parts[1])
 				}
+			case "template_repo":
+				_, err := url.Parse(parts[1])
+				if err != nil {
+					log.Printf("Err: invalid value for template_repo: %q", parts[1])
+				}
+				templateRepo = parts[1]
 			default:
 				log.Printf("Err: unknown parameter: %q", param)
 			}
@@ -115,6 +119,21 @@ func main() {
 		pgghelpers.SetRegistry(registry)
 		if err = registry.Load(g.Request); err != nil {
 			g.Error(err, "registry: failed to load the request")
+		}
+	}
+
+	if templateRepo != "" {
+		if templateDir, err = ioutil.TempDir("", "gen-*"); err != nil {
+			g.Error(err, "failed to create tmp dir")
+		}
+		defer func() {
+			if err := os.RemoveAll(templateDir); err != nil {
+				g.Error(err, "failed to remove tmp dir")
+			}
+		}()
+
+		if err = clone(templateRepo, templateDir); err != nil {
+			g.Error(err, "failed to clone repo")
 		}
 	}
 
