@@ -1,2 +1,0 @@
-all:
-	go generate

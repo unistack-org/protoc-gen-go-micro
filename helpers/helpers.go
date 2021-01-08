@@ -9,12 +9,14 @@ import (
 	"sync"
 	"text/template"
 
-	"github.com/Masterminds/sprig"
+	"github.com/Masterminds/sprig/v3"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 	ggdescriptor "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway/descriptor"
+	openapi_options "github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options"
 	"github.com/huandu/xstrings"
 	options "google.golang.org/genproto/googleapis/api/annotations"
+	//	"google.golang.org/protobuf/proto"
 )
 
 var jsReservedRe = regexp.MustCompile(`(^|[^A-Za-z])(do|if|in|for|let|new|try|var|case|else|enum|eval|false|null|this|true|void|with|break|catch|class|const|super|throw|while|yield|delete|export|import|public|return|static|switch|typeof|default|extends|finally|package|private|continue|debugger|function|arguments|interface|protected|implements|instanceof)($|[^A-Za-z])`)
@@ -22,6 +24,12 @@ var jsReservedRe = regexp.MustCompile(`(^|[^A-Za-z])(do|if|in|for|let|new|try|va
 var (
 	registry *ggdescriptor.Registry // some helpers need access to registry
 )
+
+type HttpOption struct {
+	Path   []string
+	Method string
+	Body   string
+}
 
 var ProtoHelpersFuncMap = template.FuncMap{
 	"string": func(i interface {
@@ -64,6 +72,9 @@ var ProtoHelpersFuncMap = template.FuncMap{
 	},
 	"join": func(sep string, a ...string) string {
 		return strings.Join(a, sep)
+	},
+	"joinQuotes": func(a []string) string {
+		return fmt.Sprintf(`"%s"`, strings.Join(a, `", "`))
 	},
 	"upperFirst": func(s string) string {
 		return strings.ToUpper(s[:1]) + s[1:]
@@ -138,6 +149,8 @@ var ProtoHelpersFuncMap = template.FuncMap{
 	"jsType":                       jsType,
 	"jsSuffixReserved":             jsSuffixReservedKeyword,
 	"namespacedFlowType":           namespacedFlowType,
+	"openapiOption":                openapiOption,
+	"httpOption":                   httpOption,
 	"httpVerb":                     httpVerb,
 	"httpPath":                     httpPath,
 	"httpPathsAdditionalBindings":  httpPathsAdditionalBindings,
@@ -1318,6 +1331,34 @@ func httpPathsAdditionalBindings(m *descriptor.MethodDescriptorProto) []string {
 	return httpPaths
 }
 
+func openapiOption(m *descriptor.MethodDescriptorProto) *openapi_options.Operation {
+
+	ext, err := proto.GetExtension(m.Options, openapi_options.E_Openapiv2Operation)
+	if err != nil {
+		panic(err.Error())
+	}
+	opts, ok := ext.(*openapi_options.Operation)
+	if !ok {
+		panic(fmt.Sprintf("extension is %T; want an Openapiv2Operation", ext))
+	}
+
+	return opts
+}
+
+func httpOption(m *descriptor.MethodDescriptorProto) *HttpOption {
+
+	opt := &HttpOption{Method: httpVerb(m), Body: httpBody(m)}
+	if path := httpPath(m); path != "" {
+		opt.Path = append(opt.Path, path)
+	}
+
+	for _, path := range httpPathsAdditionalBindings(m) {
+		opt.Path = append(opt.Path, path)
+	}
+
+	return opt
+}
+
 func httpVerb(m *descriptor.MethodDescriptorProto) string {
 
 	ext, err := proto.GetExtension(m.Options, options.E_Http)
@@ -1360,15 +1401,41 @@ func httpBody(m *descriptor.MethodDescriptorProto) string {
 	return opts.Body
 }
 
+func urlVarsFields(path string, d *ggdescriptor.Message) []*descriptor.FieldDescriptorProto {
+	var vars []*descriptor.FieldDescriptorProto
+	for _, field := range d.Field {
+		if !isFieldMessage(field) {
+			if strings.Contains(path, fmt.Sprintf("{%s}", *field.Name)) {
+				vars = append(vars, field)
+				continue
+			}
+			// JSON name field is checked as fallback. The value set by the protocol compiler.
+			// If the user has set a "json_name" option on a field, that option's value
+			// will be used in this check. By default value in this property will be field name in
+			// camelCase format.
+			if strings.Contains(path, fmt.Sprintf("{%s}", *field.JsonName)) {
+				vars = append(vars, field)
+			}
+		}
+	}
+	return vars
+}
+
 func urlHasVarsFromMessage(path string, d *ggdescriptor.Message) bool {
 	for _, field := range d.Field {
 		if !isFieldMessage(field) {
 			if strings.Contains(path, fmt.Sprintf("{%s}", *field.Name)) {
 				return true
 			}
+			// JSON name field is checked as fallback. The value set by the protocol compiler.
+			// If the user has set a "json_name" option on a field, that option's value
+			// will be used in this check. By default value in this property will be field name in
+			// camelCase format.
+			if strings.Contains(path, fmt.Sprintf("{%s}", *field.JsonName)) {
+				return true
+			}
 		}
 	}
-
 	return false
 }
 
@@ -1416,11 +1483,11 @@ func formatID(base string, formatted string) string {
 
 func replaceDict(src string, dict map[string]interface{}) string {
 	for old, v := range dict {
-		new, ok := v.(string)
+		n, ok := v.(string)
 		if !ok {
 			continue
 		}
-		src = strings.Replace(src, old, new, -1)
+		src = strings.Replace(src, old, n, -1)
 	}
 	return src
 }

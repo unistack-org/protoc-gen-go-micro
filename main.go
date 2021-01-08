@@ -1,18 +1,20 @@
-package main // import "moul.io/protoc-gen-gotemplate"
+package main
 
 import (
+	"io"
 	"io/ioutil"
 	"log"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/protoc-gen-go/generator"
 	plugin_go "github.com/golang/protobuf/protoc-gen-go/plugin"
 	ggdescriptor "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway/descriptor"
-
-	pgghelpers "moul.io/protoc-gen-gotemplate/helpers"
+	"github.com/unistack-org/protoc-gen-micro/assets"
+	pgghelpers "github.com/unistack-org/protoc-gen-micro/helpers"
+	"google.golang.org/protobuf/proto"
 )
 
 var (
@@ -44,13 +46,13 @@ func main() {
 
 	// Parse parameters
 	var (
-		templateDir       = "./templates"
+		templateDir       = ""
+		templateRepo      = ""
 		destinationDir    = "."
 		debug             = false
 		all               = false
 		singlePackageMode = false
 		fileMode          = false
-		templateRepo      = ""
 	)
 	if parameter := g.Request.GetParameter(); parameter != "" {
 		for _, param := range strings.Split(parameter, ",") {
@@ -98,6 +100,8 @@ func main() {
 					log.Printf("Err: invalid value for template_repo: %q", parts[1])
 				}
 				templateRepo = parts[1]
+			case "paths":
+				// TODO: handle paths=source_relative
 			default:
 				log.Printf("Err: unknown parameter: %q", param)
 			}
@@ -122,7 +126,7 @@ func main() {
 		}
 	}
 
-	if templateRepo != "" {
+	if templateDir == "" || templateRepo != "" {
 		if templateDir, err = ioutil.TempDir("", "gen-*"); err != nil {
 			g.Error(err, "failed to create tmp dir")
 		}
@@ -132,8 +136,51 @@ func main() {
 			}
 		}()
 
-		if err = clone(templateRepo, templateDir); err != nil {
-			g.Error(err, "failed to clone repo")
+		if templateRepo != "" {
+			if err = clone(templateRepo, templateDir); err != nil {
+				g.Error(err, "failed to clone repo")
+			}
+		} else {
+			dir, err := assets.Assets.Open("/")
+			if err != nil {
+				g.Error(err, "failed to open assets dir")
+			}
+			fi, err := dir.Readdir(-1)
+			if err != nil {
+				g.Error(err, "failed to get assets files")
+			}
+
+			for _, f := range fi {
+				if debug {
+					log.Printf("copy template %s", f.Name())
+				}
+				fpath := filepath.Join(templateDir, f.Name())
+				if err = os.MkdirAll(filepath.Dir(fpath), os.FileMode(0755)); err != nil {
+					g.Error(err, "failed to create nested dir")
+				}
+				if f.IsDir() {
+					continue
+				}
+				fd, err := os.OpenFile(fpath, os.O_CREATE|os.O_TRUNC|os.O_RDWR, f.Mode())
+				if err != nil {
+					g.Error(err, "failed to create template file")
+				}
+				fs, err := assets.Assets.Open(f.Name())
+				if err != nil {
+					g.Error(err, "failed to open template file")
+				}
+				if _, err = io.Copy(fd, fs); err != nil {
+					fd.Close()
+					fs.Close()
+					g.Error(err, "failed to copy template file")
+				}
+				if err = fd.Close(); err != nil {
+					g.Error(err, "failed to flush template file")
+				}
+				if err = fs.Close(); err != nil {
+					g.Error(err, "failed to flush template file")
+				}
+			}
 		}
 	}
 
