@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"go/format"
 	"io"
 	"io/ioutil"
 	"log"
@@ -221,6 +223,14 @@ func main() {
 
 	// Generate the protobufs
 	g.GenerateAllFiles()
+
+	for _, f := range g.Response.File {
+		fdata, err := format.Source([]byte(*f.Content))
+		if err != nil {
+			g.Error(err, fmt.Sprintf("failed to format output: %s", *f.Content))
+		}
+		*f.Content = string(fdata)
+	}
 
 	data, err = proto.Marshal(g.Response)
 	if err != nil {
