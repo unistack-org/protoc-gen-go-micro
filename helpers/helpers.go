@@ -1335,7 +1335,7 @@ func openapiOption(m *descriptor.MethodDescriptorProto) *openapi_options.Operati
 
 	ext, err := proto.GetExtension(m.Options, openapi_options.E_Openapiv2Operation)
 	if err != nil {
-		panic(err.Error())
+		return nil
 	}
 	opts, ok := ext.(*openapi_options.Operation)
 	if !ok {

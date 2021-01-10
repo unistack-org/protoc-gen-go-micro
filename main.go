@@ -55,6 +55,7 @@ func main() {
 		all               = false
 		singlePackageMode = false
 		fileMode          = false
+		//components        = ""
 	)
 	if parameter := g.Request.GetParameter(); parameter != "" {
 		for _, param := range strings.Split(parameter, ",") {

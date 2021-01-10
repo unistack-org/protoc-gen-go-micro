@@ -40,17 +40,21 @@ func (c *{{$ServiceName | lowerFirst}}Service) {{.Name}}(ctx context.Context, op
   {{- else -}}
 func (c *{{$ServiceName | lowerFirst}}Service) {{.Name}}(ctx context.Context, req *{{$reqMethod}}, opts ...micro_client.CallOption) (*{{$rspMethod}}, error) {
   {{- end }}
+    {{- if not (contains (json (openapiOption .)) "null") }}
     {{- if (openapiOption .).Responses }}
     errmap := make(map[string]interface{}, {{ len (openapiOption .).Responses}})
     {{- range $k, $v := (openapiOption .).Responses }}
     errmap["{{$k}}"] = &{{- (getMessageType $File $v.Schema.JsonSchema.Ref).Name }}{}
     {{- end }}
     {{- end }}
+    {{- end }}
     nopts := append(opts,
       micro_client_http.Method("{{httpVerb .}}"), 
       micro_client_http.Path("{{httpPath .}}"),
+      {{- if not (contains (json (openapiOption .)) "null") }}
       {{- if (openapiOption .).Responses }}
       micro_client_http.ErrorMap(errmap),
+      {{- end }}
       {{- end }}
     )
   {{- if or (.ServerStreaming) (.ClientStreaming)}}
