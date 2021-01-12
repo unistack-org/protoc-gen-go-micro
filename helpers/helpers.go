@@ -51,12 +51,12 @@ var ProtoHelpersFuncMap = template.FuncMap{
 		}
 		return string(a)
 	},
-	"splitArray": func(sep string, s string) []interface{} {
-		var r []interface{}
-		t := strings.Split(s, sep)
-		for i := range t {
-			if t[i] != "" {
-				r = append(r, t[i])
+	"splitArray": func(sep string, s string) []string {
+		var r []string
+		parts := strings.Split(s, sep)
+		for _, part := range parts {
+			if part != "" {
+				r = append(r, part)
 			}
 		}
 		return r
@@ -1347,6 +1347,15 @@ func openapiOption(m *descriptor.MethodDescriptorProto) *openapi_options.Operati
 
 func httpOption(m *descriptor.MethodDescriptorProto) *HttpOption {
 
+	ext, err := proto.GetExtension(m.Options, options.E_Http)
+	if err != nil {
+		return nil
+	}
+	_, ok := ext.(*options.HttpRule)
+	if !ok {
+		panic(fmt.Sprintf("extension is %T; want an HttpRule", ext))
+	}
+
 	opt := &HttpOption{Method: httpVerb(m), Body: httpBody(m)}
 	if path := httpPath(m); path != "" {
 		opt.Path = append(opt.Path, path)
@@ -1493,7 +1502,10 @@ func replaceDict(src string, dict map[string]interface{}) string {
 }
 
 func goPkg(f *descriptor.FileDescriptorProto) string {
-	return f.Options.GetGoPackage()
+	if name := f.Options.GetGoPackage(); name != "" {
+		return name
+	}
+	return f.GetPackage()
 }
 
 func goPkgLastElement(f *descriptor.FileDescriptorProto) string {

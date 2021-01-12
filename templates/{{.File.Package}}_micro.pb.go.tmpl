@@ -17,6 +17,7 @@ func New{{$ServiceName}}Endpoints() []*micro_api.Endpoint {
     var endpoints []*micro_api.Endpoint
 
     {{- range .Service.Method}}
+    {{- if not (contains (json (httpOption .)) "null") }}
     {{- if ne (httpVerb .) "" }}
     endpoint := &micro_api.Endpoint{
         Name: "{{$ServiceName}}.{{.Name}}",
@@ -34,6 +35,7 @@ func New{{$ServiceName}}Endpoints() []*micro_api.Endpoint {
     endpoint.Path = append(endpoint.Path, "{{.}}")
     {{- end}}
     endpoints = append(endpoints, endpoint)
+    {{- end}}
     {{- end}}
     {{- end}}
     return endpoints

@@ -11,7 +11,7 @@ require (
 	github.com/huandu/xstrings v1.3.1
 	github.com/mitchellh/reflectwalk v1.0.1 // indirect
 	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
-	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546 // indirect
+	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546
 	google.golang.org/genproto v0.0.0-20210106152847-07624b53cd92
 	google.golang.org/protobuf v1.25.0
 )
