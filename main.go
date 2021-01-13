@@ -55,7 +55,7 @@ func main() {
 		all               = false
 		singlePackageMode = false
 		fileMode          = false
-		//components        = ""
+		components        = []string{"micro", "grpc"}
 	)
 	if parameter := g.Request.GetParameter(); parameter != "" {
 		for _, param := range strings.Split(parameter, ",") {
@@ -103,6 +103,12 @@ func main() {
 					log.Printf("Err: invalid value for template_repo: %q", parts[1])
 				}
 				templateRepo = parts[1]
+			case "components":
+				_, err := url.Parse(parts[1])
+				if err != nil {
+					log.Printf("Err: invalid value for components: %q", parts[1])
+				}
+				components = strings.Split(parts[1], "|")
 			case "paths":
 				// TODO: handle paths=source_relative
 			default:
@@ -154,6 +160,18 @@ func main() {
 			}
 
 			for _, f := range fi {
+				skip := true
+				for _, component := range components {
+					if component == "all" || strings.Contains(f.Name(), "_"+component+".pb.go") {
+						skip = false
+					}
+				}
+				if skip {
+					if debug {
+						log.Printf("skip template %s", f.Name())
+					}
+					continue
+				}
 				if debug {
 					log.Printf("copy template %s", f.Name())
 				}
