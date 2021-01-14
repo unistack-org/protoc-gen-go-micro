@@ -4,6 +4,7 @@ package {{goPkgLastElement .File | splitArray ";" | last}}
 
 import (
 	"context"
+  "fmt"
 
 	micro_client "github.com/unistack-org/micro/v3/client" 
 	micro_server "github.com/unistack-org/micro/v3/server"
@@ -77,6 +78,17 @@ func (c *{{$ServiceName | lowerFirst}}Service) {{.Name}}(ctx context.Context, re
     return rsp, nil
   {{- end}}
 }
+
+{{- if not (contains (json (openapiOption .)) "null") }}
+{{- if (openapiOption .).Responses }}
+{{ range $k, $v := (openapiOption .).Responses }}
+// Error method to satisfy error interface
+func (e *{{- (getMessageType $File $v.Schema.JsonSchema.Ref).Name }}) Error() string {
+    return fmt.Sprintf("%v", e)
+}
+{{- end }}
+{{- end }}
+{{- end }}
 
 {{if or (.ServerStreaming) (.ClientStreaming)}}
 type {{$ServiceName | lowerFirst}}Service{{.Name}} struct {
