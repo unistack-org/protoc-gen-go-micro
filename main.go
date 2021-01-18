@@ -159,6 +159,10 @@ func main() {
 				g.Error(err, "failed to get assets files")
 			}
 
+			if debug {
+				log.Printf("components to generate: %v", components)
+			}
+
 			for _, f := range fi {
 				skip := true
 				for _, component := range components {
