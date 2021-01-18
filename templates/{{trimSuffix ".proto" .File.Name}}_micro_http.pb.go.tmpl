@@ -5,8 +5,12 @@ package {{goPkgLastElement .File | splitArray ";" | last}}
 import (
 	"context"
   "fmt"
+  "net/http"
+  "reflect"
+  "strings"
 
 	"github.com/gorilla/mux"
+	micro_api "github.com/unistack-org/micro/v3/api"
 	micro_client "github.com/unistack-org/micro/v3/client" 
 	micro_server "github.com/unistack-org/micro/v3/server"
 	micro_client_http "github.com/unistack-org/micro-client-http"
@@ -234,12 +238,12 @@ func (x *{{$ServiceName | lowerFirst}}{{.Name}}Stream) Recv() (*{{$reqMethod}}, 
 {{- end}}
 {{- end}}
 
-func Register(r *mux.Router, h interface{}, eps []*api.Endpoint) error {
+func Register(r *mux.Router, h interface{}, eps []*micro_api.Endpoint) error {
         v := reflect.ValueOf(h)
 
         methods := v.NumMethod()
         if methods < 1 {
-                return ErrInvalidHandler
+                return fmt.Errorf("invalid handler specified: %#+v", h)
         }
 
         for _, ep := range eps {
