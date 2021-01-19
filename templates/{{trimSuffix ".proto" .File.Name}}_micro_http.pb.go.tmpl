@@ -57,6 +57,7 @@ func (c *{{$ServiceName | lowerFirst}}Service) {{.Name}}(ctx context.Context, re
     nopts := append(opts,
       micro_client_http.Method("{{httpVerb .}}"), 
       micro_client_http.Path("{{httpPath .}}"),
+      micro_client_http.Body("{{httpBody .}}"),
       {{- if not (contains (json (openapiOption .)) "null") }}
       {{- if (openapiOption .).Responses }}
       micro_client_http.ErrorMap(errmap),
