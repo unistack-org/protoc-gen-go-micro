@@ -1,4 +1,4 @@
-# `protoc-gen-gotemplate`
+# `protoc-gen-micro`
 :open_file_folder: protocol generator + golang text/template (protobuf)
 
 A generic **code**/script/data generator based on [Protobuf](https://developers.google.com/protocol-buffers/).
@@ -24,7 +24,7 @@ The plugin parses **protobuf** files, generates an **ast**, and walks a local **
 
 ## Usage
 
-`protoc-gen-gotemplate` requires a **template_dir** directory *(by default `./templates`)*.
+`protoc-gen-micro` requires a **template_dir** directory *(by default `./templates`)*.
 
 Every file ending with `.tmpl` will be processed and written to the destination folder, following the file hierarchy of the `template_dir`, and remove the `.tmpl` extension.
 
@@ -33,7 +33,7 @@ Every file ending with `.tmpl` will be processed and written to the destination 
 ```console
 $> ls -R
 input.proto     templates/doc.txt.tmpl      templates/config.json.tmpl
-$> protoc --gotemplate_out=. input.proto
+$> protoc --micro_out=. input.proto
 $> ls -R
 input.proto     templates/doc.txt.tmpl      templates/config.json.tmpl
 doc.txt         config.json
@@ -44,7 +44,7 @@ doc.txt         config.json
 You can specify custom options, as follow:
 
 ```console
-$> protoc --gotemplate_out=debug=true,template_dir=/path/to/template/directory:. input.proto
+$> protoc --micro_out=debug=true,template_dir=/path/to/template/directory:. input.proto
 ```
 
 | Option                | Default Value | Accepted Values           | Description
@@ -128,7 +128,7 @@ See the project helpers for the complete list.
 
 * Install the **Go** compiler and tools from https://golang.org/doc/install
 * Install **protobuf**: `go get -u github.com/golang/protobuf/{proto,protoc-gen-go}`
-* Install **protoc-gen-gotemplate**: `go get -u github.com/unistack-org/protoc-gen-micro`
+* Install **protoc-gen-micro**: `go get -u github.com/unistack-org/protoc-gen-micro`
 
 ## License
 
