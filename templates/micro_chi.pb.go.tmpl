@@ -43,7 +43,7 @@ func Register(r *chi.Mux, h interface{}, eps []*micro_api.Endpoint) error {
                         return fmt.Errorf("invalid handler: %#+v", m.Interface())
                 }
                 for _, method := range ep.Method {
-                        r.With(middleware.Value(routeKey{}, ep.Name)).MethodFunc(method, ep.Path[0], rh)
+                        r.With(middleware.WithValue(routeKey{}, ep.Name)).MethodFunc(method, ep.Path[0], rh)
                 }
         }
 			return nil
