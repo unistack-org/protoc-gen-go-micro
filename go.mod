@@ -12,6 +12,8 @@ require (
 	github.com/mitchellh/reflectwalk v1.0.1 // indirect
 	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
 	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546
+	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a // indirect
+	golang.org/x/net v0.0.0-20200904194848-62affa334b73 // indirect
 	google.golang.org/genproto v0.0.0-20210106152847-07624b53cd92
 	google.golang.org/protobuf v1.25.0
 )

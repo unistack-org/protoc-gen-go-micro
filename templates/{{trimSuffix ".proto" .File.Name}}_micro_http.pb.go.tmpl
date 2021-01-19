@@ -89,7 +89,7 @@ func (c *{{$ServiceName | lowerFirst}}Service) {{.Name}}(ctx context.Context, re
 {{ range $k, $v := (openapiOption .).Responses }}
 // Error method to satisfy error interface
 func (e *{{- (getMessageType $File $v.Schema.JsonSchema.Ref).Name }}) Error() string {
-    return fmt.Sprintf("%v", e)
+    return fmt.Sprintf("%#v", e)
 }
 {{- end }}
 {{- end }}
