@@ -55,12 +55,13 @@ $> protoc --gotemplate_out=debug=true,template_dir=/path/to/template/directory:.
 
 | Option                | Default Value | Accepted Values           | Description
 |-----------------------|---------------|---------------------------|-----------------------
+| `template_repo`       | ``            | url in form schema://domain | path to repo with optional branch or revision after @ sign
 | `template_dir`        | `./template`  | absolute or relative path | path to look for templates
 | `destination_dir`     | `.`           | absolute or relative path | base path to write output
 | `single-package-mode` | *false*       | `true` or `false`         | if *true*, `protoc` won't accept multiple packages to be compiled at once (*!= from `all`*), but will support `Message` lookup across the imported protobuf dependencies
 | `debug`               | *false*       | `true` or `false`         | if *true*, `protoc` will generate a more verbose output
 | `all`                 | *false*       | `true` or `false`         | if *true*, protobuf files without `Service` will also be parsed
-
+| `components`          | `micro`       | `micro, grpc, http, chi, gorilla | some values cant coexists like gorilla/chi or grpc/http
 ##### Hints
 
 Shipping the templates with your project is very smart and useful when contributing on git-based projects.
