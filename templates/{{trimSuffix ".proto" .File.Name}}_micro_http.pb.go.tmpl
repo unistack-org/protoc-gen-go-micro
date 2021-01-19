@@ -5,12 +5,7 @@ package {{goPkgLastElement .File | splitArray ";" | last}}
 import (
 	"context"
   "fmt"
-  "net/http"
-  "reflect"
-  "strings"
 
-	"github.com/gorilla/mux"
-	micro_api "github.com/unistack-org/micro/v3/api"
 	micro_client "github.com/unistack-org/micro/v3/client" 
 	micro_server "github.com/unistack-org/micro/v3/server"
 	micro_client_http "github.com/unistack-org/micro-client-http/v3"
@@ -57,7 +52,9 @@ func (c *{{$ServiceName | lowerFirst}}Service) {{.Name}}(ctx context.Context, re
     nopts := append(opts,
       micro_client_http.Method("{{httpVerb .}}"), 
       micro_client_http.Path("{{httpPath .}}"),
+      {{- if not (contains (httpBody .) "GET") }}
       micro_client_http.Body("{{httpBody .}}"),
+      {{- end }}
       {{- if not (contains (json (openapiOption .)) "null") }}
       {{- if (openapiOption .).Responses }}
       micro_client_http.ErrorMap(errmap),
@@ -238,31 +235,3 @@ func (x *{{$ServiceName | lowerFirst}}{{.Name}}Stream) Recv() (*{{$reqMethod}}, 
 
 {{- end}}
 {{- end}}
-
-func Register(r *mux.Router, h interface{}, eps []*micro_api.Endpoint) error {
-        v := reflect.ValueOf(h)
-
-        methods := v.NumMethod()
-        if methods < 1 {
-                return fmt.Errorf("invalid handler specified: %#+v", h)
-        }
-
-        for _, ep := range eps {
-                idx := strings.Index(ep.Name, ".")
-                if idx < 1 || len(ep.Name) <= idx {
-                        return fmt.Errorf("invalid api.Endpoint name: %s", ep.Name)
-                }
-                name := ep.Name[idx+1:]
-                m := v.MethodByName(name)
-                if !m.IsValid() || m.IsZero() {
-                        return fmt.Errorf("invalid handler, method %s not found", name)
-                }
-
-                rh, ok := m.Interface().(func(http.ResponseWriter, *http.Request))
-                if !ok {
-                        return fmt.Errorf("invalid handler: %#+v", m.Interface())
-                }
-                r.HandleFunc(ep.Path[0], rh).Methods(ep.Method...).Name(ep.Name)
-        }
-			return nil
-}
