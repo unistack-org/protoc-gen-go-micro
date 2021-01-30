@@ -26,9 +26,10 @@ var (
 )
 
 type HttpOption struct {
-	Path   []string
-	Method string
-	Body   string
+	Path       string
+	Method     string
+	Body       string
+	Additional []*HttpOption
 }
 
 var ProtoHelpersFuncMap = template.FuncMap{
@@ -1351,18 +1352,64 @@ func httpOption(m *descriptor.MethodDescriptorProto) *HttpOption {
 	if err != nil {
 		return nil
 	}
-	_, ok := ext.(*options.HttpRule)
+	hr, ok := ext.(*options.HttpRule)
 	if !ok {
 		panic(fmt.Sprintf("extension is %T; want an HttpRule", ext))
 	}
 
-	opt := &HttpOption{Method: httpVerb(m), Body: httpBody(m)}
-	if path := httpPath(m); path != "" {
-		opt.Path = append(opt.Path, path)
+	var method string
+	var path string
+	switch t := hr.Pattern.(type) {
+	default:
+		break
+	case *options.HttpRule_Get:
+		method = "GET"
+		path = t.Get
+	case *options.HttpRule_Post:
+		method = "POST"
+		path = t.Post
+	case *options.HttpRule_Put:
+		method = "PUT"
+		path = t.Put
+	case *options.HttpRule_Delete:
+		method = "DELETE"
+		path = t.Delete
+	case *options.HttpRule_Patch:
+		method = "PATCH"
+		path = t.Patch
+	case *options.HttpRule_Custom:
+		method = t.Custom.Kind
+		path = t.Custom.Path
 	}
 
-	for _, path := range httpPathsAdditionalBindings(m) {
-		opt.Path = append(opt.Path, path)
+	opt := &HttpOption{Method: method, Body: hr.Body, Path: path}
+
+	for _, ahr := range hr.AdditionalBindings {
+		switch t := ahr.Pattern.(type) {
+		default:
+			break
+		case *options.HttpRule_Get:
+			method = "GET"
+			path = t.Get
+		case *options.HttpRule_Post:
+			method = "POST"
+			path = t.Post
+		case *options.HttpRule_Put:
+			method = "PUT"
+			path = t.Put
+		case *options.HttpRule_Delete:
+			method = "DELETE"
+			path = t.Delete
+		case *options.HttpRule_Patch:
+			method = "PATCH"
+			path = t.Patch
+		case *options.HttpRule_Custom:
+			method = t.Custom.Kind
+			path = t.Custom.Path
+		}
+
+		aopt := &HttpOption{Method: method, Body: ahr.Body, Path: path}
+		opt.Additional = append(opt.Additional, aopt)
 	}
 
 	return opt

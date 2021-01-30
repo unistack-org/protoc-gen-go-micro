@@ -82,17 +82,6 @@ func (c *{{$ServiceName | lowerFirst}}Service) {{.Name}}(ctx context.Context, re
   {{- end}}
 }
 
-{{- if not (contains (json (openapiOption .)) "null") }}
-{{- if (openapiOption .).Responses }}
-{{ range $k, $v := (openapiOption .).Responses }}
-// Error method to satisfy error interface
-func (e *{{- (getMessageType $File $v.Schema.JsonSchema.Ref).Name }}) Error() string {
-    return fmt.Sprintf("%#v", e)
-}
-{{- end }}
-{{- end }}
-{{- end }}
-
 {{if or (.ServerStreaming) (.ClientStreaming)}}
 type {{$ServiceName | lowerFirst}}Service{{.Name}} struct {
     stream micro_client.Stream
@@ -235,3 +224,23 @@ func (x *{{$ServiceName | lowerFirst}}{{.Name}}Stream) Recv() (*{{$reqMethod}}, 
 
 {{- end}}
 {{- end}}
+
+{{- $errmsg := list }}
+{{range .Service.Method}}
+{{- if not (contains (json (openapiOption .)) "null") }}
+{{- if (openapiOption .).Responses }}
+{{ range $k, $v := (openapiOption .).Responses }}
+{{- $msgtype := (getMessageType $File $v.Schema.JsonSchema.Ref) }}
+{{- $errmsg = append $errmsg $msgtype.Name }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+
+{{range $k, $v := ($errmsg | uniq) }}
+// Error method to satisfy error interface
+func (e *{{- $v }}) Error() string {
+    return fmt.Sprintf("%#v", e)
+}
+{{- end }}

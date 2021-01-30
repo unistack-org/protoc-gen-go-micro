@@ -15,7 +15,7 @@ func Register(r *mux.Router, h interface{}, eps []*micro_api.Endpoint) error {
         v := reflect.ValueOf(h)
 
         if v.NumMethod() < 1 {
-                return fmt.Errorf("invalid handler specified: %#+v", h)
+                return fmt.Errorf("handler has no methods: %T", h)
         }
 
         for _, ep := range eps {

@@ -11,30 +11,52 @@ import (
 )
 
 {{- $ServiceName := .Service.Name | trimSuffix "Service" }}
+{{- $epnum := 0 }}
+{{- range .Service.Method}}
+{{- if not (contains (json (httpOption .)) "null") }}
+{{- if ne (httpVerb .) "" }}
+{{- $epnum = add $epnum 1 }}
+{{- range httpPathsAdditionalBindings . }}
+{{- $epnum = add $epnum 1 }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
 
 // New{{$ServiceName}}Endpoints provides api endpoints metdata for {{$ServiceName}} service
 func New{{$ServiceName}}Endpoints() []*micro_api.Endpoint {
-    var endpoints []*micro_api.Endpoint
-
+    endpoints := make([]*micro_api.Endpoint, 0, {{ $epnum }})
+    {{- if ne $epnum 0 }}
+    var endpoint *micro_api.Endpoint
+    {{- end }}
     {{- range .Service.Method}}
     {{- if not (contains (json (httpOption .)) "null") }}
-    {{- if ne (httpVerb .) "" }}
-    endpoint := &micro_api.Endpoint{
+    {{- $httpOption := (httpOption .) }}
+    {{- if ne $httpOption.Method "" }}
+    endpoint = &micro_api.Endpoint{
         Name: "{{$ServiceName}}.{{.Name}}",
-        Path: []string{"{{httpPath .}}"},
-        Method: []string{"{{httpVerb .}}"},
-        {{- if ne (httpBody .) "" }}
-        Body: "{{httpBody .}}",
-        {{- end}}
+        Path: []string{"{{$httpOption.Path}}"},
+        Method: []string{"{{$httpOption.Method}}"},
+        Body: "{{$httpOption.Body}}",
         {{- if or (.ClientStreaming) (.ServerStreaming)}}
         Stream: true,
         {{- end}}
         Handler: "rpc",
     }
-    {{- range httpPathsAdditionalBindings . }}
-    endpoint.Path = append(endpoint.Path, "{{.}}")
-    {{- end}}
     endpoints = append(endpoints, endpoint)
+    {{- range $index, $element := $httpOption.Additional }}
+    endpoint = &micro_api.Endpoint{
+        Name: "{{$ServiceName}}.{{.Name}}",
+        Path: []string{"{{$element.Path}}"},
+        Method: []string{"{{$element.Method}}"},
+        Body: "{{$element.Body}}",
+        {{- if or (.ClientStreaming) (.ServerStreaming)}}
+        Stream: true,
+        {{- end}}
+        Handler: "rpc",
+    }
+    endpoints = append(endpoints, endpoint)
+    {{- end}}
     {{- end}}
     {{- end}}
     {{- end}}
