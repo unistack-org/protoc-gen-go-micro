@@ -25,6 +25,7 @@ import (
 
 	micro_client "github.com/unistack-org/micro/v3/client" 
 	micro_server "github.com/unistack-org/micro/v3/server"
+	micro_api "github.com/unistack-org/micro/v3/api"
 	micro_client_http "github.com/unistack-org/micro-client-http/v3"
 )
 
@@ -231,3 +232,27 @@ func (e *{{- $v }}) Error() string {
     return fmt.Sprintf("%#v", e)
 }
 {{- end }}
+
+// Register{{$ServiceName}}Handler registers server handler                                                                        
+func Register{{$ServiceName}}Handler(s micro_server.Server, sh {{$ServiceName}}Handler, opts ...micro_server.HandlerOption) error {
+    type {{$ServiceName | lowerFirst}} interface {                                                                                 
+    {{- range .Service.Method}}                                                                                                    
+{{- $reqMethod := .InputType | splitArray "." | last}}                                                                             
+{{- $rspMethod := .OutputType | splitArray "." | last}}                                                                            
+{{- if or (.ServerStreaming) (.ClientStreaming)}}                                                                                  
+        {{.Name}}(context.Context, micro_server.Stream) error                                                                      
+{{- else}}                                                                                                                         
+        {{.Name}}(context.Context, *{{$reqMethod}}, *{{$rspMethod}}) error                                                         
+    {{- end}}                                                                                                                      
+    {{- end}}                                                                                                                      
+    }                                                                                                                              
+    type {{$ServiceName}} struct {                                                                                                 
+        {{$ServiceName | lowerFirst}}                                                                                              
+    }                                                                                                                              
+    h := &{{$ServiceName | lowerFirst}}Handler{sh}                                                                                 
+    for _, endpoint := range New{{$ServiceName}}Endpoints() {                                                                      
+        opts = append(opts, micro_api.WithEndpoint(endpoint))                                                                      
+    }                                                                                                                              
+    return s.Handle(s.NewHandler(&{{$ServiceName}}{h}, opts...))                                                                   
+}                                                                                                                                  
+
