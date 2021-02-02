@@ -12,7 +12,7 @@ import (
 	"github.com/golang/protobuf/protoc-gen-go/generator"
 	plugin_go "github.com/golang/protobuf/protoc-gen-go/plugin"
 	ggdescriptor "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway/descriptor"
-	pgghelpers "github.com/unistack-org/protoc-gen-micro/helpers"
+	pgghelpers "github.com/unistack-org/protoc-gen-micro/v3/helpers"
 	"google.golang.org/protobuf/proto"
 )
 

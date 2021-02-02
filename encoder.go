@@ -15,8 +15,8 @@ import (
 
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 	plugin_go "github.com/golang/protobuf/protoc-gen-go/plugin"
-	"github.com/unistack-org/protoc-gen-micro/assets"
-	pgghelpers "github.com/unistack-org/protoc-gen-micro/helpers"
+	"github.com/unistack-org/protoc-gen-micro/v3/assets"
+	pgghelpers "github.com/unistack-org/protoc-gen-micro/v3/helpers"
 )
 
 type GenericTemplateBasedEncoder struct {

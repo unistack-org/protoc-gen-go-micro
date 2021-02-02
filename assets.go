@@ -6,7 +6,7 @@ import (
 	"log"
 
 	"github.com/shurcooL/vfsgen"
-	"github.com/unistack-org/protoc-gen-micro/assets"
+	"github.com/unistack-org/protoc-gen-micro/v3/assets"
 )
 
 func main() {
