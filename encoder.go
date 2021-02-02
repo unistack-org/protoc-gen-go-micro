@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"fmt"
+	"io/ioutil"
 	"log"
 	"net/url"
 	"os"
@@ -12,11 +14,13 @@ import (
 
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 	plugin_go "github.com/golang/protobuf/protoc-gen-go/plugin"
+	"github.com/unistack-org/protoc-gen-micro/assets"
 	pgghelpers "github.com/unistack-org/protoc-gen-micro/helpers"
 )
 
 type GenericTemplateBasedEncoder struct {
 	templateDir    string
+	assetsDir      string
 	service        *descriptor.ServiceDescriptorProto
 	file           *descriptor.FileDescriptorProto
 	enum           []*descriptor.EnumDescriptorProto
@@ -76,6 +80,51 @@ func NewGenericTemplateBasedEncoder(templateDir string, file *descriptor.FileDes
 
 func (e *GenericTemplateBasedEncoder) templates() ([]string, error) {
 	filenames := []string{}
+
+	if e.templateDir == "" {
+		dir, err := assets.Assets.Open("/")
+		if err != nil {
+			return nil, fmt.Errorf("failed to open assets dir")
+		}
+
+		fi, err := dir.Readdir(-1)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get assets files")
+		}
+
+		if debug {
+			log.Printf("components to generate: %v", components)
+		}
+
+		for _, f := range fi {
+			skip := true
+			for _, component := range components {
+				if component == "all" || strings.Contains(f.Name(), "_"+component+".pb.go") {
+					skip = false
+				}
+			}
+			if skip {
+				if debug {
+					log.Printf("skip template %s", f.Name())
+				}
+				continue
+			}
+
+			if f.IsDir() {
+				continue
+			}
+			if filepath.Ext(f.Name()) != ".tmpl" {
+				continue
+			}
+			if e.debug {
+				log.Printf("new template: %q", f.Name())
+			}
+
+			filenames = append(filenames, f.Name())
+		}
+
+		return filenames, nil
+	}
 
 	err := filepath.Walk(e.templateDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -156,10 +205,27 @@ func (e *GenericTemplateBasedEncoder) genAst(templateFilename string) (*Ast, err
 }
 
 func (e *GenericTemplateBasedEncoder) buildContent(templateFilename string) (string, string, error) {
-	// initialize template engine
-	fullPath := filepath.Join(e.templateDir, templateFilename)
-	templateName := filepath.Base(fullPath)
-	tmpl, err := template.New(templateName).Funcs(pgghelpers.ProtoHelpersFuncMap).ParseFiles(fullPath)
+	var tmpl *template.Template
+	var err error
+
+	if e.templateDir == "" {
+		fs, err := assets.Assets.Open("/" + templateFilename)
+		if err != nil {
+			return "", "", err
+		}
+		buf, err := ioutil.ReadAll(fs)
+		if err != nil {
+			return "", "", err
+		}
+		if err = fs.Close(); err == nil {
+			tmpl, err = template.New("/" + templateFilename).Funcs(pgghelpers.ProtoHelpersFuncMap).Parse(string(buf))
+		}
+	} else {
+		// initialize template engine
+		fullPath := filepath.Join(e.templateDir, templateFilename)
+		templateName := filepath.Base(fullPath)
+		tmpl, err = template.New(templateName).Funcs(pgghelpers.ProtoHelpersFuncMap).ParseFiles(fullPath)
+	}
 	if err != nil {
 		return "", "", err
 	}

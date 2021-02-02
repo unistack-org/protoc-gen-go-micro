@@ -3,18 +3,15 @@ package main
 import (
 	"fmt"
 	"go/format"
-	"io"
 	"io/ioutil"
 	"log"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/golang/protobuf/protoc-gen-go/generator"
 	plugin_go "github.com/golang/protobuf/protoc-gen-go/plugin"
 	ggdescriptor "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway/descriptor"
-	"github.com/unistack-org/protoc-gen-micro/assets"
 	pgghelpers "github.com/unistack-org/protoc-gen-micro/helpers"
 	"google.golang.org/protobuf/proto"
 )
@@ -26,6 +23,17 @@ var (
 const (
 	boolTrue  = "true"
 	boolFalse = "false"
+)
+
+var (
+	templateDir       = ""
+	templateRepo      = ""
+	destinationDir    = "."
+	debug             = false
+	all               = false
+	singlePackageMode = false
+	fileMode          = false
+	components        = []string{"micro", "grpc"}
 )
 
 func main() {
@@ -47,16 +55,6 @@ func main() {
 	g.CommandLineParameters(g.Request.GetParameter())
 
 	// Parse parameters
-	var (
-		templateDir       = ""
-		templateRepo      = ""
-		destinationDir    = "."
-		debug             = false
-		all               = false
-		singlePackageMode = false
-		fileMode          = false
-		components        = []string{"micro", "grpc"}
-	)
 	if parameter := g.Request.GetParameter(); parameter != "" {
 		for _, param := range strings.Split(parameter, ",") {
 			parts := strings.Split(param, "=")
@@ -135,7 +133,7 @@ func main() {
 		}
 	}
 
-	if templateDir == "" || templateRepo != "" {
+	if templateDir == "" && templateRepo != "" {
 		if templateDir, err = ioutil.TempDir("", "gen-*"); err != nil {
 			g.Error(err, "failed to create tmp dir")
 		}
@@ -148,63 +146,6 @@ func main() {
 		if templateRepo != "" {
 			if err = clone(templateRepo, templateDir); err != nil {
 				g.Error(err, "failed to clone repo")
-			}
-		} else {
-			dir, err := assets.Assets.Open("/")
-			if err != nil {
-				g.Error(err, "failed to open assets dir")
-			}
-			fi, err := dir.Readdir(-1)
-			if err != nil {
-				g.Error(err, "failed to get assets files")
-			}
-
-			if debug {
-				log.Printf("components to generate: %v", components)
-			}
-
-			for _, f := range fi {
-				skip := true
-				for _, component := range components {
-					if component == "all" || strings.Contains(f.Name(), "_"+component+".pb.go") {
-						skip = false
-					}
-				}
-				if skip {
-					if debug {
-						log.Printf("skip template %s", f.Name())
-					}
-					continue
-				}
-				if debug {
-					log.Printf("copy template %s", f.Name())
-				}
-				fpath := filepath.Join(templateDir, f.Name())
-				if err = os.MkdirAll(filepath.Dir(fpath), os.FileMode(0755)); err != nil {
-					g.Error(err, "failed to create nested dir")
-				}
-				if f.IsDir() {
-					continue
-				}
-				fd, err := os.OpenFile(fpath, os.O_CREATE|os.O_TRUNC|os.O_RDWR, f.Mode())
-				if err != nil {
-					g.Error(err, "failed to create template file")
-				}
-				fs, err := assets.Assets.Open(f.Name())
-				if err != nil {
-					g.Error(err, "failed to open template file")
-				}
-				if _, err = io.Copy(fd, fs); err != nil {
-					fd.Close()
-					fs.Close()
-					g.Error(err, "failed to copy template file")
-				}
-				if err = fd.Close(); err != nil {
-					g.Error(err, "failed to flush template file")
-				}
-				if err = fs.Close(); err != nil {
-					g.Error(err, "failed to flush template file")
-				}
 			}
 		}
 	}
