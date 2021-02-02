@@ -20,7 +20,7 @@ func RouteName(ctx context.Context) (string, bool) {
         return value, ok
 }
 
-func Register(r *chi.Mux, h interface{}, eps []*micro_api.Endpoint) error {
+func {{.Service.Name | trimSuffix "Service"}}ServiceRegister(r *chi.Mux, h interface{}, eps []*micro_api.Endpoint) error {
         v := reflect.ValueOf(h)
 
         if v.NumMethod() < 1 {

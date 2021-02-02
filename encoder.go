@@ -103,9 +103,6 @@ func (e *GenericTemplateBasedEncoder) templates() ([]string, error) {
 				name = string(dname)
 			}
 			for _, component := range components {
-				if debug {
-					log.Printf("check file template %s for %s", name, "_"+component+".pb.go.tmpl")
-				}
 				if component == "all" || strings.Contains(name, "_"+component+".pb.go.tmpl") {
 					skip = false
 				}

@@ -11,7 +11,7 @@ import (
 	micro_api "github.com/unistack-org/micro/v3/api"
 )
 
-func Register(r *mux.Router, h interface{}, eps []*micro_api.Endpoint) error {
+func {{.Service.Name | trimSuffix "Service"}}ServiceRegister(r *mux.Router, h interface{}, eps []*micro_api.Endpoint) error {
         v := reflect.ValueOf(h)
 
         if v.NumMethod() < 1 {

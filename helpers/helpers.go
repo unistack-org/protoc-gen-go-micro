@@ -134,7 +134,9 @@ var ProtoHelpersFuncMap = template.FuncMap{
 		}
 		return a / b
 	},
-
+	"lenght": func(a []interface{}) int {
+		return len(a)
+	},
 	"snakeCase":                    xstrings.ToSnakeCase,
 	"getProtoFile":                 getProtoFile,
 	"getMessageType":               getMessageType,

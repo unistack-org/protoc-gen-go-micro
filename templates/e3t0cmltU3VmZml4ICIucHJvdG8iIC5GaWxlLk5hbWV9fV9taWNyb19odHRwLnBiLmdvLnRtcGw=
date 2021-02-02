@@ -2,9 +2,26 @@
 // source: {{.File.Name}}
 package {{goPkgLastElement .File | splitArray ";" | last | replace "." "_"}}
 
+{{- $File := .File }}
+{{- $ServiceName := .Service.Name | trimSuffix "Service" }}
+
+{{- $errmsg := list }}
+{{range .Service.Method}}
+{{- if not (contains (json (openapiOption .)) "null") }}
+{{- if (openapiOption .).Responses }}
+{{ range $k, $v := (openapiOption .).Responses }}
+{{- $msgtype := (getMessageType $File $v.Schema.JsonSchema.Ref) }}
+{{- $errmsg = append $errmsg $msgtype.Name }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
 import (
 	"context"
+{{- if ne (lenght $errmsg) 0 }}
   "fmt"
+{{- end }}
 
 	micro_client "github.com/unistack-org/micro/v3/client" 
 	micro_server "github.com/unistack-org/micro/v3/server"
@@ -15,9 +32,6 @@ var (
     _ micro_server.Option
     _ micro_client.Option
 )
-
-{{- $File := .File }}
-{{- $ServiceName := .Service.Name | trimSuffix "Service" }}
 
 type {{$ServiceName | lowerFirst}}Service struct {
     c micro_client.Client
@@ -210,19 +224,6 @@ func (x *{{$ServiceName | lowerFirst}}{{.Name}}Stream) Recv() (*{{$reqMethod}}, 
 
 {{end}}
 {{end}}
-
-{{- $errmsg := list }}
-{{range .Service.Method}}
-{{- if not (contains (json (openapiOption .)) "null") }}
-{{- if (openapiOption .).Responses }}
-{{ range $k, $v := (openapiOption .).Responses }}
-{{- $msgtype := (getMessageType $File $v.Schema.JsonSchema.Ref) }}
-{{- $errmsg = append $errmsg $msgtype.Name }}
-{{- end }}
-{{- end }}
-{{- end }}
-{{- end }}
-
 
 {{range $k, $v := ($errmsg | uniq) }}
 // Error method to satisfy error interface
