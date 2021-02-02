@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -97,15 +98,22 @@ func (e *GenericTemplateBasedEncoder) templates() ([]string, error) {
 		}
 
 		for _, f := range fi {
+			name := f.Name()
 			skip := true
+			if dname, err := base64.StdEncoding.DecodeString(name); err == nil {
+				name = string(dname)
+			}
 			for _, component := range components {
-				if component == "all" || strings.Contains(f.Name(), "_"+component+".pb.go") {
+				if debug {
+					log.Printf("check file template %s for %s", name, "_"+component+".pb.go")
+				}
+				if component == "all" || strings.Contains(name, "_"+component+".pb.go") {
 					skip = false
 				}
 			}
 			if skip {
 				if debug {
-					log.Printf("skip template %s", f.Name())
+					log.Printf("skip template %s", name)
 				}
 				continue
 			}
@@ -113,14 +121,14 @@ func (e *GenericTemplateBasedEncoder) templates() ([]string, error) {
 			if f.IsDir() {
 				continue
 			}
-			if filepath.Ext(f.Name()) != ".tmpl" {
+			if filepath.Ext(name) != ".tmpl" {
 				continue
 			}
 			if e.debug {
-				log.Printf("new template: %q", f.Name())
+				log.Printf("new template: %q", name)
 			}
 
-			filenames = append(filenames, f.Name())
+			filenames = append(filenames, name)
 		}
 
 		return filenames, nil
@@ -209,7 +217,10 @@ func (e *GenericTemplateBasedEncoder) buildContent(templateFilename string) (str
 	var err error
 
 	if e.templateDir == "" {
-		fs, err := assets.Assets.Open("/" + templateFilename)
+		fs, err := assets.Assets.Open("/" + string(base64.StdEncoding.EncodeToString([]byte(templateFilename))))
+		if err != nil {
+			fs, err = assets.Assets.Open("/" + templateFilename)
+		}
 		if err != nil {
 			return "", "", err
 		}
