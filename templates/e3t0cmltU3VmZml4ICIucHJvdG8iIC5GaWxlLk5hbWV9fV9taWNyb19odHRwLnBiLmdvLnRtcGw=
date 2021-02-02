@@ -34,11 +34,11 @@ func New{{$ServiceName}}Service(name string, c micro_client.Client) {{$ServiceNa
 {{range .Service.Method}}
 {{- $reqMethod := .InputType | splitArray "." | last}}
 {{- $rspMethod := .OutputType | splitArray "." | last}}
-{{- if and (not .ClientStreaming) (.ServerStreaming) -}}
+{{ if and (not .ClientStreaming) (.ServerStreaming) }}
 func (c *{{$ServiceName | lowerFirst}}Service) {{.Name}}(ctx context.Context, req *{{$reqMethod}}, opts ...micro_client.CallOption) ({{$ServiceName}}_{{.Name}}Service, error) {
-  {{- else if .ClientStreaming -}}
+  {{ else if .ClientStreaming }}
 func (c *{{$ServiceName | lowerFirst}}Service) {{.Name}}(ctx context.Context, opts ...micro_client.CallOption) ({{$ServiceName}}_{{.Name}}Service, error) {
-  {{- else -}}
+  {{ else }}
 func (c *{{$ServiceName | lowerFirst}}Service) {{.Name}}(ctx context.Context, req *{{$reqMethod}}, opts ...micro_client.CallOption) (*{{$rspMethod}}, error) {
   {{- end }}
     {{- if not (contains (json (openapiOption .)) "null") }}
@@ -48,7 +48,7 @@ func (c *{{$ServiceName | lowerFirst}}Service) {{.Name}}(ctx context.Context, re
     errmap["{{$k}}"] = &{{- (getMessageType $File $v.Schema.JsonSchema.Ref).Name }}{}
     {{- end }}
     {{- end }}
-    {{- end }}
+    {{ end }}
     nopts := append(opts,
       micro_client_http.Method("{{httpVerb .}}"), 
       micro_client_http.Path("{{httpPath .}}"),
@@ -162,23 +162,8 @@ func (h *{{$ServiceName | lowerFirst}}Handler) {{.Name}}(ctx context.Context, re
   return h.{{$ServiceName}}Handler.{{.Name}}(ctx, req, rsp)
 }
 {{- end}}
-{{if or (.ServerStreaming) (.ClientStreaming)}}
-type {{$ServiceName}}_{{.Name}}Stream interface {
-  Context() context.Context
-  SendMsg(interface{}) error
-  RecvMsg(interface{}) error
-  {{- if and (.ClientStreaming) (not .ServerStreaming)}}
-  SendAndClose(*{{$rspMethod}}) error
-  {{- end}}
-  Close() error
-  {{- if .ServerStreaming}}
-  Send(*{{$rspMethod}}) error
-  {{- end}}
-  {{- if .ClientStreaming}}
-  Recv() (*{{$reqMethod}}, error)
-  {{- end}}
-}
 
+{{if or (.ServerStreaming) (.ClientStreaming)}}
 type {{$ServiceName | lowerFirst}}{{.Name}}Stream struct {
   stream micro_server.Stream
 }
@@ -207,11 +192,12 @@ func (x *{{$ServiceName | lowerFirst}}{{.Name}}Stream) SendMsg(m interface{}) er
 func (x *{{$ServiceName | lowerFirst}}{{.Name}}Stream) RecvMsg(m interface{}) error {
   return x.stream.Recv(m)
 }
-{{- if .ServerStreaming}}
+{{if .ServerStreaming}}
 func (x *{{$ServiceName | lowerFirst}}{{.Name}}Stream) Send(m *{{$rspMethod}}) error {
   return x.stream.Send(m)
 }
-{{- end}}
+{{end}}
+
 {{if .ClientStreaming}}
 func (x *{{$ServiceName | lowerFirst}}{{.Name}}Stream) Recv() (*{{$reqMethod}}, error) {
   m := &{{$reqMethod}}{}
@@ -220,10 +206,10 @@ func (x *{{$ServiceName | lowerFirst}}{{.Name}}Stream) Recv() (*{{$reqMethod}}, 
   }
   return m, nil
 }
-{{- end}}
+{{end}}
 
-{{- end}}
-{{- end}}
+{{end}}
+{{end}}
 
 {{- $errmsg := list }}
 {{range .Service.Method}}

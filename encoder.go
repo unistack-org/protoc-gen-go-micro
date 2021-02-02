@@ -21,7 +21,6 @@ import (
 
 type GenericTemplateBasedEncoder struct {
 	templateDir    string
-	assetsDir      string
 	service        *descriptor.ServiceDescriptorProto
 	file           *descriptor.FileDescriptorProto
 	enum           []*descriptor.EnumDescriptorProto
@@ -239,6 +238,8 @@ func (e *GenericTemplateBasedEncoder) buildContent(templateFilename string) (str
 	}
 	if err != nil {
 		return "", "", err
+	} else if tmpl == nil {
+		return "", "", fmt.Errorf("template for %s is nil", templateFilename)
 	}
 
 	ast, err := e.genAst(templateFilename)

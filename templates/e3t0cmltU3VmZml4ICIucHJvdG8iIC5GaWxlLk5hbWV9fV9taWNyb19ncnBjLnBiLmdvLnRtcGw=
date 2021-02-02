@@ -169,11 +169,13 @@ func (x *{{$ServiceName | lowerFirst}}{{.Name}}Stream) SendMsg(m interface{}) er
 func (x *{{$ServiceName | lowerFirst}}{{.Name}}Stream) RecvMsg(m interface{}) error {
   return x.stream.Recv(m)
 }
+
 {{- if .ServerStreaming}}
 func (x *{{$ServiceName | lowerFirst}}{{.Name}}Stream) Send(m *{{$rspMethod}}) error {
   return x.stream.Send(m)
 }
-{{- end}}
+{{end}}
+
 {{if .ClientStreaming}}
 func (x *{{$ServiceName | lowerFirst}}{{.Name}}Stream) Recv() (*{{$reqMethod}}, error) {
   m := &{{$reqMethod}}{}
@@ -182,7 +184,7 @@ func (x *{{$ServiceName | lowerFirst}}{{.Name}}Stream) Recv() (*{{$reqMethod}}, 
   }
   return m, nil
 }
-{{- end}}
+{{end}}
 
 {{- end}}
 {{- end}}
