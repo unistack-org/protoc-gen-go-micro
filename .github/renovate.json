@@ -2,5 +2,18 @@
   "extends": [
     "config:base"
   ],
-  "groupName": "all"
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "automerge": true
+    },
+    {
+      "groupName": "all deps",
+      "separateMajorMinor": true,
+      "groupSlug": "all",
+      "packagePatterns": [
+        "*"
+      ]
+    }
+  ]
 }
