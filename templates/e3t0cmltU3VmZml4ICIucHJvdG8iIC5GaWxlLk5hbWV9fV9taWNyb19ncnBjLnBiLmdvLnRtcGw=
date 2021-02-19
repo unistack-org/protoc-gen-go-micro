@@ -5,6 +5,7 @@ package {{goPkgLastElement .File | splitArray ";" | last | replace "." "_"}}
 import (
 	"context"
 
+  micro_api "github.com/unistack-org/micro/v3/api"
 	micro_client "github.com/unistack-org/micro/v3/client" 
 	micro_server "github.com/unistack-org/micro/v3/server"
 )
@@ -100,7 +101,7 @@ func (x *{{$ServiceName | lowerFirst}}Service{{.Name}}) RecvMsg(m interface{}) e
 func (x *{{$ServiceName | lowerFirst}}Service{{.Name}}) Send(m *{{$reqMethod}}) error {
     return x.stream.Send(m)
 }
-{{- end}}
+{{end}}
 
 {{ if .ServerStreaming -}}
 func (x *{{$ServiceName | lowerFirst}}Service{{.Name}}) Recv() (*{{$rspMethod}}, error) {
@@ -110,10 +111,10 @@ func (x *{{$ServiceName | lowerFirst}}Service{{.Name}}) Recv() (*{{$rspMethod}},
   }
   return m, nil
 }
-{{- end }}
+{{ end }}
 
 {{- end}}
-{{- end -}}
+{{- end}}
 
 // Micro server stuff
 
@@ -186,8 +187,8 @@ func (x *{{$ServiceName | lowerFirst}}{{.Name}}Stream) Recv() (*{{$reqMethod}}, 
 }
 {{end}}
 
-{{- end}}
-{{- end}}
+{{end}}
+{{end}}
 
 // Register{{$ServiceName}}Handler registers server handler                                                                             
 func Register{{$ServiceName}}Handler(s micro_server.Server, sh {{$ServiceName}}Handler, opts ...micro_server.HandlerOption) error {     

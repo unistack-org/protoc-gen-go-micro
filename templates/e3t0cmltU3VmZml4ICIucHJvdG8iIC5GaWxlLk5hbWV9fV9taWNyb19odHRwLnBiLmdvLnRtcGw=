@@ -151,7 +151,7 @@ func (x *{{$ServiceName | lowerFirst}}Service{{.Name}}) Recv() (*{{$rspMethod}},
 {{- end }}
 
 {{- end}}
-{{- end -}}
+{{end}}
 
 // Micro server stuff
 
