@@ -25,17 +25,21 @@ func (g *Generator) microGenerate(component string, plugin *protogen.Plugin) err
 		gfile.P("// source: ", *file.Proto.Name)
 		gfile.P("package ", file.GoPackageName)
 
-		gfile.QualifiedGoIdent(protogen.GoIdent{"context", "context"})
-		gfile.QualifiedGoIdent(protogen.GoIdent{"api", "github.com/unistack-org/micro/v3/api"})
-		gfile.QualifiedGoIdent(protogen.GoIdent{"client", "github.com/unistack-org/micro/v3/client"})
-		gfile.QualifiedGoIdent(protogen.GoIdent{"server", "github.com/unistack-org/micro/v3/server"})
+		gfile.P()
+		gfile.P("import (")
+		gfile.P(`"context"`)
+		gfile.P(`micro_api "github.com/unistack-org/micro/v3/api"`)
+		gfile.P(`micro_client "github.com/unistack-org/micro/v3/client"`)
+		gfile.P(`micro_server "github.com/unistack-org/micro/v3/server"`)
+		gfile.P(")")
+		gfile.P()
 
 		gfile.P("// Reference imports to suppress errors if they are not otherwise used.")
 		gfile.P("var (")
-		gfile.P("_ ", "api.Endpoint")
+		gfile.P("_ ", "micro_api.Endpoint")
 		gfile.P("_ ", "context.Context")
-		gfile.P(" _ ", "client.Option")
-		gfile.P(" _ ", "server.Option")
+		gfile.P(" _ ", "micro_client.Option")
+		gfile.P(" _ ", "micro_server.Option")
 		gfile.P(")")
 		gfile.P()
 
@@ -80,7 +84,7 @@ func generateClientSignature(serviceName string, method *protogen.Method) string
 	if method.Desc.IsStreamingClient() || method.Desc.IsStreamingServer() {
 		rsp = serviceName + "_" + methodName + "Service"
 	}
-	return fmt.Sprintf("%s(ctx context.Context%s, opts ...client.CallOption) (%s, error)", methodName, req, rsp)
+	return fmt.Sprintf("%s(ctx context.Context%s, opts ...micro_client.CallOption) (%s, error)", methodName, req, rsp)
 }
 
 func generateServiceClientInterface(gfile *protogen.GeneratedFile, service *protogen.Service) {
@@ -154,8 +158,8 @@ func generateServiceServerStreamInterface(gfile *protogen.GeneratedFile, service
 func generateServiceEndpoints(gfile *protogen.GeneratedFile, service *protogen.Service) {
 	serviceName := strings.TrimSuffix(service.GoName, "Service")
 	gfile.P("//New", serviceName, "Endpoints provides api endpoints metdata for ", serviceName, " service")
-	gfile.P("func New", serviceName, "Endpoints() []*api.Endpoint {")
-	gfile.P("return []*", "api.Endpoint{")
+	gfile.P("func New", serviceName, "Endpoints() []*micro_api.Endpoint {")
+	gfile.P("return []*", "micro_api.Endpoint{")
 	for _, method := range service.Methods {
 		if method.Desc.Options() == nil {
 			continue
@@ -163,7 +167,7 @@ func generateServiceEndpoints(gfile *protogen.GeneratedFile, service *protogen.S
 		if proto.HasExtension(method.Desc.Options(), api_options.E_Http) {
 			endpoints, streaming := generateEndpoints(method)
 			for _, endpoint := range endpoints {
-				gfile.P("&", "api.Endpoint{")
+				gfile.P("&", "micro_api.Endpoint{")
 				generateEndpoint(gfile, serviceName, method.GoName, endpoint, streaming)
 				gfile.P("},")
 			}
