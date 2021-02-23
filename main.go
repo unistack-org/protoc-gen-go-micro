@@ -18,7 +18,7 @@ var (
 
 func init() {
 	flagDebug = flags.Bool("debug", false, "")
-	flagComponents = flags.String("components", "micro", "")
+	flagComponents = flags.String("components", "micro|rpc", "")
 	flagPaths = flag.String("paths", "", "")
 	flagModule = flag.String("module", "", "")
 }
