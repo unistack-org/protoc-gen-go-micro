@@ -10,20 +10,36 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func lowerFirst(s string) string {
+var (
+	reflectPackage         = protogen.GoImportPath("reflect")
+	stringsPackage         = protogen.GoImportPath("strings")
+	fmtPackage             = protogen.GoImportPath("fmt")
+	contextPackage         = protogen.GoImportPath("context")
+	httpPackage            = protogen.GoImportPath("net/http")
+	gorillaMuxPackage      = protogen.GoImportPath("github.com/gorilla/mux")
+	chiPackage             = protogen.GoImportPath("github.com/go-chi/chi/v4")
+	chiMiddlewarePackage   = protogen.GoImportPath("github.com/go-chi/chi/v4/middleware")
+	microApiPackage        = protogen.GoImportPath("github.com/unistack-org/micro/v3/api")
+	microClientPackage     = protogen.GoImportPath("github.com/unistack-org/micro/v3/client")
+	microServerPackage     = protogen.GoImportPath("github.com/unistack-org/micro/v3/server")
+	microClientHttpPackage = protogen.GoImportPath("github.com/unistack-org/micro-client-http/v3")
+	deprecationComment     = "// Deprecated: Do not use."
+)
+
+func unexport(s string) string {
 	return strings.ToLower(s[:1]) + s[1:]
 }
 
 func generateServiceClient(gfile *protogen.GeneratedFile, service *protogen.Service) {
 	serviceName := strings.TrimSuffix(service.GoName, "Service")
-	gfile.P("type ", lowerFirst(serviceName), "Service struct {")
-	gfile.P("c micro_client.Client")
+	gfile.P("type ", unexport(serviceName), "Service struct {")
+	gfile.P("c ", microClientPackage.Ident("Client"))
 	gfile.P("name string")
 	gfile.P("}")
 
 	gfile.P("// New", serviceName, "Service create new service client")
 	gfile.P("func New", serviceName, "Service(name string, c micro_client.Client) ", serviceName, "Service {")
-	gfile.P("return &", lowerFirst(serviceName), "Service{c: c, name: name}")
+	gfile.P("return &", unexport(serviceName), "Service{c: c, name: name}")
 	gfile.P("}")
 	gfile.P()
 }
@@ -32,7 +48,7 @@ func generateServiceClientMethods(gfile *protogen.GeneratedFile, service *protog
 	serviceName := strings.TrimSuffix(service.GoName, "Service")
 	for _, method := range service.Methods {
 		methodName := fmt.Sprintf("%s.%s", serviceName, method.GoName)
-		gfile.P("func (c *", lowerFirst(serviceName), "Service) ", generateClientSignature(serviceName, method), "{")
+		generateClientFuncSignature(gfile, serviceName, method)
 
 		if http && method.Desc.Options() != nil {
 			if proto.HasExtension(method.Desc.Options(), openapi_options.E_Openapiv2Operation) {
@@ -41,14 +57,13 @@ func generateServiceClientMethods(gfile *protogen.GeneratedFile, service *protog
 					r := opts.(*openapi_options.Operation)
 					gfile.P("errmap := make(map[string]interface{}, ", len(r.Responses), ")")
 					for code, response := range r.Responses {
-						if response.Schema == nil || response.Schema.JsonSchema == nil {
-							continue
+						if response.Schema != nil && response.Schema.JsonSchema != nil {
+							ref := response.Schema.JsonSchema.Ref
+							if strings.HasPrefix(ref, "."+string(service.Desc.ParentFile().Package())+".") {
+								ref = strings.TrimPrefix(ref, "."+string(service.Desc.ParentFile().Package())+".")
+							}
+							gfile.P(`errmap["`, code, `"] = &`, ref, "{}")
 						}
-						ref := response.Schema.JsonSchema.Ref
-						if strings.HasPrefix(ref, "."+string(service.Desc.ParentFile().Package())+".") {
-							ref = strings.TrimPrefix(ref, "."+string(service.Desc.ParentFile().Package())+".")
-						}
-						gfile.P(`errmap["`, code, `"] = &`, ref, "{}")
 					}
 				}
 
@@ -76,7 +91,7 @@ func generateServiceClientMethods(gfile *protogen.GeneratedFile, service *protog
 			gfile.P("return rsp, nil")
 			gfile.P("}")
 			gfile.P()
-			return
+			continue
 		}
 
 		gfile.P(`stream, err := c.c.Stream(ctx, c.c.NewRequest(c.name, "`, methodName, `", &`, method.Input.Desc.Name(), `{}), opts...)`)
@@ -89,18 +104,18 @@ func generateServiceClientMethods(gfile *protogen.GeneratedFile, service *protog
 			gfile.P("return nil, err")
 			gfile.P("}")
 		}
-		gfile.P("return &", lowerFirst(serviceName), "Service", method.GoName, "{stream}, nil")
+		gfile.P("return &", unexport(serviceName), "Service", method.GoName, "{stream}, nil")
 		gfile.P("}")
 		gfile.P()
 
 		if method.Desc.IsStreamingServer() || method.Desc.IsStreamingClient() {
-			gfile.P("type ", lowerFirst(serviceName), "Service", method.GoName, " struct {")
+			gfile.P("type ", unexport(serviceName), "Service", method.GoName, " struct {")
 			gfile.P("stream micro_client.Stream")
 			gfile.P("}")
 		}
 
 		if method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
-			gfile.P("func (s *", lowerFirst(serviceName), "Service", method.GoName, ") RecvAndClose() (*", method.Output.Desc.Name(), ", error) {")
+			gfile.P("func (s *", unexport(serviceName), "Service", method.GoName, ") RecvAndClose() (*", method.Output.Desc.Name(), ", error) {")
 			gfile.P("m := &", method.Output.Desc.Name(), "{}")
 			gfile.P("err := s.RecvMsg(m)")
 			gfile.P("if err == nil {")
@@ -114,32 +129,32 @@ func generateServiceClientMethods(gfile *protogen.GeneratedFile, service *protog
 		}
 
 		gfile.P()
-		gfile.P("func (s *", lowerFirst(serviceName), "Service", method.GoName, ") Close() error {")
+		gfile.P("func (s *", unexport(serviceName), "Service", method.GoName, ") Close() error {")
 		gfile.P("return s.stream.Close()")
 		gfile.P("}")
 		gfile.P()
-		gfile.P("func (s *", lowerFirst(serviceName), "Service", method.GoName, ") Context() context.Context {")
+		gfile.P("func (s *", unexport(serviceName), "Service", method.GoName, ") Context() context.Context {")
 		gfile.P("return s.stream.Context()")
 		gfile.P("}")
 		gfile.P()
-		gfile.P("func (s *", lowerFirst(serviceName), "Service", method.GoName, ") SendMsg(m interface{}) error {")
+		gfile.P("func (s *", unexport(serviceName), "Service", method.GoName, ") SendMsg(m interface{}) error {")
 		gfile.P("return s.stream.Send(m)")
 		gfile.P("}")
 		gfile.P()
-		gfile.P("func (s *", lowerFirst(serviceName), "Service", method.GoName, ") RecvMsg(m interface{}) error {")
+		gfile.P("func (s *", unexport(serviceName), "Service", method.GoName, ") RecvMsg(m interface{}) error {")
 		gfile.P("return s.stream.Recv(m)")
 		gfile.P("}")
 		gfile.P()
 
 		if method.Desc.IsStreamingClient() {
-			gfile.P("func (s *", lowerFirst(serviceName), "Service", method.GoName, ") Send(m *", method.Input.Desc.Name(), ") error {")
+			gfile.P("func (s *", unexport(serviceName), "Service", method.GoName, ") Send(m *", method.Input.Desc.Name(), ") error {")
 			gfile.P("return s.stream.Send(m)")
 			gfile.P("}")
 			gfile.P()
 		}
 
 		if method.Desc.IsStreamingServer() {
-			gfile.P("func (s *", lowerFirst(serviceName), "Service", method.GoName, ") Recv() (*", method.Output.Desc.Name(), ", error) {")
+			gfile.P("func (s *", unexport(serviceName), "Service", method.GoName, ") Recv() (*", method.Output.Desc.Name(), ", error) {")
 			gfile.P("m := &", method.Output.Desc.Name(), "{}")
 			gfile.P("if err := s.stream.Recv(m); err != nil {")
 			gfile.P("return nil, err")
@@ -153,7 +168,7 @@ func generateServiceClientMethods(gfile *protogen.GeneratedFile, service *protog
 
 func generateServiceServer(gfile *protogen.GeneratedFile, service *protogen.Service) {
 	serviceName := strings.TrimSuffix(service.GoName, "Service")
-	gfile.P("type ", lowerFirst(serviceName), "Handler struct {")
+	gfile.P("type ", unexport(serviceName), "Handler struct {")
 	gfile.P(serviceName, "Handler")
 	gfile.P("}")
 	gfile.P()
@@ -162,12 +177,7 @@ func generateServiceServer(gfile *protogen.GeneratedFile, service *protogen.Serv
 func generateServiceServerMethods(gfile *protogen.GeneratedFile, service *protogen.Service) {
 	serviceName := strings.TrimSuffix(service.GoName, "Service")
 	for _, method := range service.Methods {
-		//methodName := fmt.Sprintf("%s.%s", serviceName, method.GoName)
-		if method.Desc.IsStreamingClient() || method.Desc.IsStreamingServer() {
-			gfile.P("func (h *", lowerFirst(serviceName), "Handler) ", method.GoName, "(ctx context.Context, stream micro_server.Stream) error {")
-		} else {
-			gfile.P("func (h *", lowerFirst(serviceName), "Handler) ", generateServerSignature(serviceName, method), "{")
-		}
+		generateServerFuncSignature(gfile, serviceName, method)
 
 		if method.Desc.IsStreamingClient() || method.Desc.IsStreamingServer() {
 			if !method.Desc.IsStreamingClient() {
@@ -175,9 +185,9 @@ func generateServiceServerMethods(gfile *protogen.GeneratedFile, service *protog
 				gfile.P("if err := stream.Recv(m); err != nil {")
 				gfile.P("return err")
 				gfile.P("}")
-				gfile.P("return h.", serviceName, "Handler.", method.GoName, "(ctx, m, &", lowerFirst(serviceName), method.GoName, "Stream{stream})")
+				gfile.P("return h.", serviceName, "Handler.", method.GoName, "(ctx, m, &", unexport(serviceName), method.GoName, "Stream{stream})")
 			} else {
-				gfile.P("return h.", serviceName, "Handler.", method.GoName, "(ctx, &", lowerFirst(serviceName), method.GoName, "Stream{stream})")
+				gfile.P("return h.", serviceName, "Handler.", method.GoName, "(ctx, &", unexport(serviceName), method.GoName, "Stream{stream})")
 			}
 		} else {
 			gfile.P("return h.", serviceName, "Handler.", method.GoName, "(ctx, req, rsp)")
@@ -186,13 +196,13 @@ func generateServiceServerMethods(gfile *protogen.GeneratedFile, service *protog
 		gfile.P()
 
 		if method.Desc.IsStreamingClient() || method.Desc.IsStreamingServer() {
-			gfile.P("type ", lowerFirst(serviceName), method.GoName, "Stream struct {")
+			gfile.P("type ", unexport(serviceName), method.GoName, "Stream struct {")
 			gfile.P("stream micro_server.Stream")
 			gfile.P("}")
 		}
 
 		if method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
-			gfile.P("func (s *", lowerFirst(serviceName), method.GoName, "Stream) SendAndClose(m *", method.Output.Desc.Name(), ") error {")
+			gfile.P("func (s *", unexport(serviceName), method.GoName, "Stream) SendAndClose(m *", method.Output.Desc.Name(), ") error {")
 			gfile.P("err := s.SendMsg(m)")
 			gfile.P("if err == nil {")
 			gfile.P("err = s.stream.Close()")
@@ -202,35 +212,35 @@ func generateServiceServerMethods(gfile *protogen.GeneratedFile, service *protog
 		}
 
 		if method.Desc.IsStreamingClient() || method.Desc.IsStreamingServer() {
-			gfile.P("func (s *", lowerFirst(serviceName), method.GoName, "Stream) Close() error {")
+			gfile.P("func (s *", unexport(serviceName), method.GoName, "Stream) Close() error {")
 			gfile.P("return s.stream.Close()")
 			gfile.P("}")
 			gfile.P()
 
-			gfile.P("func (s *", lowerFirst(serviceName), method.GoName, "Stream) Context() context.Context {")
+			gfile.P("func (s *", unexport(serviceName), method.GoName, "Stream) Context() context.Context {")
 			gfile.P("return s.stream.Context()")
 			gfile.P("}")
 			gfile.P()
 
-			gfile.P("func (s *", lowerFirst(serviceName), method.GoName, "Stream) SendMsg(m interface{}) error {")
+			gfile.P("func (s *", unexport(serviceName), method.GoName, "Stream) SendMsg(m interface{}) error {")
 			gfile.P("return s.stream.Send(m)")
 			gfile.P("}")
 			gfile.P()
 
-			gfile.P("func (s *", lowerFirst(serviceName), method.GoName, "Stream) RecvMsg(m interface{}) error {")
+			gfile.P("func (s *", unexport(serviceName), method.GoName, "Stream) RecvMsg(m interface{}) error {")
 			gfile.P("return s.stream.Recv(m)")
 			gfile.P("}")
 			gfile.P()
 
 			if method.Desc.IsStreamingServer() {
-				gfile.P("func (s *", lowerFirst(serviceName), method.GoName, "Stream) Send(m *", method.Output.Desc.Name(), ") error {")
+				gfile.P("func (s *", unexport(serviceName), method.GoName, "Stream) Send(m *", method.Output.Desc.Name(), ") error {")
 				gfile.P("return s.stream.Send(m)")
 				gfile.P("}")
 				gfile.P()
 			}
 
 			if method.Desc.IsStreamingClient() {
-				gfile.P("func (s *", lowerFirst(serviceName), method.GoName, "Stream) Recv() (*", method.Input.Desc.Name(), ", error) {")
+				gfile.P("func (s *", unexport(serviceName), method.GoName, "Stream) Recv() (*", method.Input.Desc.Name(), ", error) {")
 				gfile.P("m := &", method.Input.Desc.Name(), "{}")
 				gfile.P("if err := s.stream.Recv(m); err != nil {")
 				gfile.P("return nil, err")
@@ -247,61 +257,110 @@ func generateServiceServerMethods(gfile *protogen.GeneratedFile, service *protog
 func generateServiceRegister(gfile *protogen.GeneratedFile, service *protogen.Service) {
 	serviceName := strings.TrimSuffix(service.GoName, "Service")
 	gfile.P("func Register", serviceName, "Handler(s micro_server.Server, sh ", serviceName, "Handler, opts ...micro_server.HandlerOption) error {")
-	gfile.P("type ", lowerFirst(serviceName), " interface {")
+	gfile.P("type ", unexport(serviceName), " interface {")
 	for _, method := range service.Methods {
-		if method.Desc.IsStreamingClient() || method.Desc.IsStreamingServer() {
-			gfile.P(method.GoName, "(ctx context.Context, stream micro_server.Stream) error")
-		} else {
-			gfile.P(generateServerSignature(serviceName, method))
-		}
+		generateServerSignature(gfile, serviceName, method)
 	}
 	gfile.P("}")
 	gfile.P("type ", serviceName, " struct {")
-	gfile.P(lowerFirst(serviceName))
+	gfile.P(unexport(serviceName))
 	gfile.P("}")
-	gfile.P("h := &", lowerFirst(serviceName), "Handler{sh}")
+	gfile.P("h := &", unexport(serviceName), "Handler{sh}")
 	gfile.P("for _, endpoint := range New", serviceName, "Endpoints() {")
-	gfile.P("opts = append(opts, micro_api.WithEndpoint(endpoint))")
+	gfile.P("opts = append(opts, ", microApiPackage.Ident("WithEndpoint"), "(endpoint))")
 	gfile.P("}")
 	gfile.P("return s.Handle(s.NewHandler(&", serviceName, "{h}, opts...))")
 	gfile.P("}")
 }
 
-func generateServerSignature(serviceName string, method *protogen.Method) string {
-	methodName := string(method.GoName)
-	req := []string{"ctx context.Context"}
-	ret := "error"
-
-	if !method.Desc.IsStreamingClient() {
-		req = append(req, "req *"+string(method.Input.Desc.Name()))
+func generateServerFuncSignature(gfile *protogen.GeneratedFile, serviceName string, method *protogen.Method) {
+	args := append([]interface{}{},
+		"func (h *", unexport(serviceName), "Handler) ", method.GoName,
+		"(ctx ", contextPackage.Ident("Context"),
+	)
+	if method.Desc.IsStreamingClient() || method.Desc.IsStreamingServer() {
+		args = append(args, ", stream ", microServerPackage.Ident("Stream"))
+	} else {
+		if !method.Desc.IsStreamingClient() {
+			args = append(args, ", req *", gfile.QualifiedGoIdent(method.Input.GoIdent))
+		}
+		if method.Desc.IsStreamingServer() || method.Desc.IsStreamingClient() {
+			args = append(args, ", stream ", serviceName, "_", method.GoName, "Stream")
+		}
+		if !method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
+			args = append(args, ", rsp *", gfile.QualifiedGoIdent(method.Output.GoIdent))
+		}
 	}
-	if method.Desc.IsStreamingServer() || method.Desc.IsStreamingClient() {
-		req = append(req, "stream "+serviceName+"_"+methodName+"Stream")
-	}
-	if !method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
-		req = append(req, "rsp *"+string(method.Output.Desc.Name()))
-	}
-	return methodName + "(" + strings.Join(req, ", ") + ") " + ret
+	args = append(args, ") error {")
+	gfile.P(args...)
 }
 
-func generateClientSignature(serviceName string, method *protogen.Method) string {
-	methodName := string(method.GoName)
-	req := ", req *" + string(method.Input.Desc.Name())
-	if method.Desc.IsStreamingClient() {
-		req = ""
-	}
-	rsp := "*" + string(method.Output.Desc.Name())
+func generateServerSignature(gfile *protogen.GeneratedFile, serviceName string, method *protogen.Method) {
+	args := append([]interface{}{},
+		method.GoName,
+		"(ctx ", contextPackage.Ident("Context"),
+	)
 	if method.Desc.IsStreamingClient() || method.Desc.IsStreamingServer() {
-		rsp = serviceName + "_" + methodName + "Service"
+		args = append(args, ", stream ", microServerPackage.Ident("Stream"))
+	} else {
+		if !method.Desc.IsStreamingClient() {
+			args = append(args, ", req *", gfile.QualifiedGoIdent(method.Input.GoIdent))
+		}
+		if method.Desc.IsStreamingServer() || method.Desc.IsStreamingClient() {
+			args = append(args, ", stream ", serviceName, "_", method.GoName, "Stream")
+		}
+		if !method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
+			args = append(args, ", rsp *", gfile.QualifiedGoIdent(method.Output.GoIdent))
+		}
 	}
-	return fmt.Sprintf("%s(ctx context.Context%s, opts ...micro_client.CallOption) (%s, error)", methodName, req, rsp)
+	args = append(args, ") error")
+	gfile.P(args...)
+}
+
+func generateClientFuncSignature(gfile *protogen.GeneratedFile, serviceName string, method *protogen.Method) {
+	args := append([]interface{}{},
+		"func (c *",
+		unexport(serviceName),
+		"Service) ",
+		method.GoName,
+		"(ctx ", contextPackage.Ident("Context"), ", ",
+	)
+	if !method.Desc.IsStreamingClient() {
+		args = append(args, "req *", gfile.QualifiedGoIdent(method.Input.GoIdent), ", ")
+	}
+	args = append(args, "opts ...", microClientPackage.Ident("CallOption"), ") (")
+	if !method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
+		args = append(args, "*", gfile.QualifiedGoIdent(method.Output.GoIdent))
+	} else {
+		args = append(args, serviceName, "_", method.GoName, "Service")
+	}
+	args = append(args, ", error) {")
+	gfile.P(args...)
+}
+
+func generateClientSignature(gfile *protogen.GeneratedFile, serviceName string, method *protogen.Method) {
+	args := append([]interface{}{},
+		method.GoName,
+		"(ctx ", contextPackage.Ident("Context"), ", ",
+	)
+	if !method.Desc.IsStreamingClient() {
+		args = append(args, "req *", gfile.QualifiedGoIdent(method.Input.GoIdent), ", ")
+	}
+	args = append(args, "opts ...", microClientPackage.Ident("CallOption"), ") (")
+	if !method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
+		args = append(args, "*", gfile.QualifiedGoIdent(method.Output.GoIdent))
+	} else {
+		args = append(args, serviceName, "_", method.GoName, "Service")
+	}
+	args = append(args, ", error)")
+	gfile.P(args...)
 }
 
 func generateServiceClientInterface(gfile *protogen.GeneratedFile, service *protogen.Service) {
 	serviceName := strings.TrimSuffix(service.GoName, "Service")
 	gfile.P("type ", serviceName, "Service interface {")
 	for _, method := range service.Methods {
-		gfile.P(generateClientSignature(serviceName, method))
+		generateClientSignature(gfile, serviceName, method)
 	}
 	gfile.P("}")
 	gfile.P()
@@ -311,7 +370,7 @@ func generateServiceServerInterface(gfile *protogen.GeneratedFile, service *prot
 	serviceName := strings.TrimSuffix(service.GoName, "Service")
 	gfile.P("type ", serviceName, "Handler interface {")
 	for _, method := range service.Methods {
-		gfile.P(generateServerSignature(serviceName, method))
+		generateServerSignature(gfile, serviceName, method)
 	}
 	gfile.P("}")
 	gfile.P()
@@ -372,8 +431,8 @@ func generateServiceServerStreamInterface(gfile *protogen.GeneratedFile, service
 func generateServiceEndpoints(gfile *protogen.GeneratedFile, service *protogen.Service) {
 	serviceName := strings.TrimSuffix(service.GoName, "Service")
 	gfile.P("// New", serviceName, "Endpoints provides api endpoints metdata for ", serviceName, " service")
-	gfile.P("func New", serviceName, "Endpoints() []*micro_api.Endpoint {")
-	gfile.P("return []*", "micro_api.Endpoint{")
+	gfile.P("func New", serviceName, "Endpoints() []*", microApiPackage.Ident("Endpoint"), " {")
+	gfile.P("return []*", microApiPackage.Ident("Endpoint"), "{")
 	for _, method := range service.Methods {
 		if method.Desc.Options() == nil {
 			continue
@@ -381,7 +440,7 @@ func generateServiceEndpoints(gfile *protogen.GeneratedFile, service *protogen.S
 		if proto.HasExtension(method.Desc.Options(), api_options.E_Http) {
 			endpoints, streaming := generateEndpoints(method)
 			for _, endpoint := range endpoints {
-				gfile.P("&", "micro_api.Endpoint{")
+				gfile.P("&", microApiPackage.Ident("Endpoint"), "{")
 				generateEndpoint(gfile, serviceName, method.GoName, endpoint, streaming)
 				gfile.P("},")
 			}
