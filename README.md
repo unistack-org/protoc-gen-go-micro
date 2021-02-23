@@ -16,7 +16,7 @@ $> protoc --micro_out=debug=true,components="micro|http":. input.proto
 | Option                | Default Value | Accepted Values           | Description
 |-----------------------|---------------|---------------------------|-----------------------
 | `debug`               | *false*       | `true` or `false`         | if *true*, `protoc` will generate a more verbose output
-| `components`          | `micro`       | `micro|rpc|http|chi|gorilla` | some values cant coexists like gorilla/chi or rpc/http
+| `components`          | `micro`       | `micro rpc http chi gorilla` | some values cant coexists like gorilla/chi or rpc/http, values must be concatinated with pipe symbol '|'
 
 ## Install
 
