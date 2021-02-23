@@ -1,0 +1,20 @@
+{
+  "extends": [
+    "config:base"
+  ],
+  "postUpdateOptions": ["gomodTidy"],
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "automerge": true
+    },
+    {
+      "groupName": "all deps",
+      "separateMajorMinor": true,
+      "groupSlug": "all",
+      "packagePatterns": [
+        "*"
+      ]
+    }
+  ]
+}
