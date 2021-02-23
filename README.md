@@ -22,4 +22,4 @@ $> protoc --micro_out=debug=true,components="micro|http":. input.proto
 
 * Install the **go** compiler and tools from https://golang.org/doc/install
 * Install **protoc-gen-go**: `go get google.golang.org/protobuf/cmd/protoc-gen-go`
-* Install **protoc-gen-micro**: `go get github.com/unistack-org/protoc-gen-micro`
+* Install **protoc-gen-micro**: `go get github.com/unistack-org/protoc-gen-micro/v3`
