@@ -360,7 +360,7 @@ func generateServiceServerStreamInterface(gfile *protogen.GeneratedFile, service
 
 func generateServiceEndpoints(gfile *protogen.GeneratedFile, service *protogen.Service) {
 	serviceName := strings.TrimSuffix(service.GoName, "Service")
-	gfile.P("//New", serviceName, "Endpoints provides api endpoints metdata for ", serviceName, " service")
+	gfile.P("// New", serviceName, "Endpoints provides api endpoints metdata for ", serviceName, " service")
 	gfile.P("func New", serviceName, "Endpoints() []*micro_api.Endpoint {")
 	gfile.P("return []*", "micro_api.Endpoint{")
 	for _, method := range service.Methods {

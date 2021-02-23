@@ -34,8 +34,9 @@ func (g *Generator) gorillaGenerate(component string, plugin *protogen.Plugin) e
 		gfile.P(`"net/http"`)
 		gfile.P(`"reflect"`)
 		gfile.P(`"strings"`)
-		gfile.P(`mux "github.com/gorilla/mux"`)
+		gfile.P()
 		gfile.P(`micro_api "github.com/unistack-org/micro/v3/api"`)
+		gfile.P(`mux "github.com/gorilla/mux"`)
 		gfile.P(")")
 		gfile.P()
 

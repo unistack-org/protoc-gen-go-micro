@@ -23,9 +23,9 @@ func (g *Generator) microGenerate(component string, plugin *protogen.Plugin) err
 		gfile.P()
 		gfile.P("import (")
 		gfile.P(`"context"`)
+		gfile.P()
 		gfile.P(`micro_api "github.com/unistack-org/micro/v3/api"`)
 		gfile.P(`micro_client "github.com/unistack-org/micro/v3/client"`)
-		gfile.P(`micro_server "github.com/unistack-org/micro/v3/server"`)
 		gfile.P(")")
 		gfile.P()
 
@@ -34,7 +34,6 @@ func (g *Generator) microGenerate(component string, plugin *protogen.Plugin) err
 		gfile.P("_ ", "micro_api.Endpoint")
 		gfile.P("_ ", "context.Context")
 		gfile.P(" _ ", "micro_client.Option")
-		gfile.P(" _ ", "micro_server.Option")
 		gfile.P(")")
 		gfile.P()
 
