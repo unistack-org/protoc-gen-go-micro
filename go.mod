@@ -4,6 +4,6 @@ go 1.16
 
 require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.2.0
-	google.golang.org/genproto v0.0.0-20210223151946-22b48be4551b
+	google.golang.org/genproto v0.0.0-20210224155714-063164c882e6
 	google.golang.org/protobuf v1.25.0
 )
