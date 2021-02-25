@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"google.golang.org/protobuf/compiler/protogen"
+	"google.golang.org/protobuf/types/pluginpb"
 )
 
 var (
@@ -36,6 +37,7 @@ func (g *Generator) Generate(plugin *protogen.Plugin) error {
 	g.standalone = *flagStandalone
 	g.debug = *flagDebug
 	g.components = *flagComponents
+	plugin.SupportedFeatures = uint64(pluginpb.CodeGeneratorResponse_FEATURE_PROTO3_OPTIONAL)
 
 	// Protoc passes a slice of File structs for us to process
 	for _, component := range strings.Split(g.components, "|") {
