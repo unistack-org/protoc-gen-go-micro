@@ -9,23 +9,14 @@ import (
 )
 
 var (
-	flags          flag.FlagSet
-	flagDebug      *bool
-	flagComponents *string
-	flagPaths      *string
-	flagModule     *string
+	flagDebug      = flag.Bool("debug", false, "")
+	flagStandalone = flag.Bool("standalone", false, "")
+	flagComponents = flag.String("components", "micro|rpc", "")
 )
-
-func init() {
-	flagDebug = flags.Bool("debug", false, "")
-	flagComponents = flags.String("components", "micro|rpc", "")
-	flagPaths = flag.String("paths", "", "")
-	flagModule = flag.String("module", "", "")
-}
 
 func main() {
 	opts := &protogen.Options{
-		ParamFunc: flags.Set,
+		ParamFunc: flag.CommandLine.Set,
 	}
 
 	g := &Generator{}
@@ -34,13 +25,20 @@ func main() {
 }
 
 type Generator struct {
+	components string
+	standalone bool
+	debug      bool
 }
 
 func (g *Generator) Generate(plugin *protogen.Plugin) error {
 	var err error
 
+	g.standalone = *flagStandalone
+	g.debug = *flagDebug
+	g.components = *flagComponents
+
 	// Protoc passes a slice of File structs for us to process
-	for _, component := range strings.Split(*flagComponents, "|") {
+	for _, component := range strings.Split(g.components, "|") {
 		switch component {
 		case "micro":
 			err = g.microGenerate(component, plugin)

@@ -31,21 +31,20 @@ func unexport(s string) string {
 }
 
 func generateServiceClient(gfile *protogen.GeneratedFile, service *protogen.Service) {
-	serviceName := strings.TrimSuffix(service.GoName, "Service")
-	gfile.P("type ", unexport(serviceName), "Service struct {")
+	serviceName := service.GoName
+	gfile.P("type ", unexport(serviceName), "Client struct {")
 	gfile.P("c ", microClientPackage.Ident("Client"))
 	gfile.P("name string")
 	gfile.P("}")
 
-	gfile.P("// New", serviceName, "Service create new service client")
-	gfile.P("func New", serviceName, "Service(name string, c ", microClientPackage.Ident("Client"), ") ", serviceName, "Service {")
-	gfile.P("return &", unexport(serviceName), "Service{c: c, name: name}")
+	gfile.P("func New", serviceName, "Client(name string, c ", microClientPackage.Ident("Client"), ") ", serviceName, "Client {")
+	gfile.P("return &", unexport(serviceName), "Client{c: c, name: name}")
 	gfile.P("}")
 	gfile.P()
 }
 
 func generateServiceClientMethods(gfile *protogen.GeneratedFile, service *protogen.Service, http bool) {
-	serviceName := strings.TrimSuffix(service.GoName, "Service")
+	serviceName := service.GoName
 	for _, method := range service.Methods {
 		methodName := fmt.Sprintf("%s.%s", serviceName, method.GoName)
 		generateClientFuncSignature(gfile, serviceName, method)
@@ -104,18 +103,18 @@ func generateServiceClientMethods(gfile *protogen.GeneratedFile, service *protog
 			gfile.P("return nil, err")
 			gfile.P("}")
 		}
-		gfile.P("return &", unexport(serviceName), "Service", method.GoName, "{stream}, nil")
+		gfile.P("return &", unexport(serviceName), "Client", method.GoName, "{stream}, nil")
 		gfile.P("}")
 		gfile.P()
 
 		if method.Desc.IsStreamingServer() || method.Desc.IsStreamingClient() {
-			gfile.P("type ", unexport(serviceName), "Service", method.GoName, " struct {")
+			gfile.P("type ", unexport(serviceName), "Client", method.GoName, " struct {")
 			gfile.P("stream ", microClientPackage.Ident("Stream"))
 			gfile.P("}")
 		}
 
 		if method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
-			gfile.P("func (s *", unexport(serviceName), "Service", method.GoName, ") RecvAndClose() (*", gfile.QualifiedGoIdent(method.Output.GoIdent), ", error) {")
+			gfile.P("func (s *", unexport(serviceName), "Client", method.GoName, ") RecvAndClose() (*", gfile.QualifiedGoIdent(method.Output.GoIdent), ", error) {")
 			gfile.P("msg := &", gfile.QualifiedGoIdent(method.Output.GoIdent), "{}")
 			gfile.P("err := s.RecvMsg(msg)")
 			gfile.P("if err == nil {")
@@ -129,32 +128,32 @@ func generateServiceClientMethods(gfile *protogen.GeneratedFile, service *protog
 		}
 
 		gfile.P()
-		gfile.P("func (s *", unexport(serviceName), "Service", method.GoName, ") Close() error {")
+		gfile.P("func (s *", unexport(serviceName), "Client", method.GoName, ") Close() error {")
 		gfile.P("return s.stream.Close()")
 		gfile.P("}")
 		gfile.P()
-		gfile.P("func (s *", unexport(serviceName), "Service", method.GoName, ") Context() ", contextPackage.Ident("Context"), " {")
+		gfile.P("func (s *", unexport(serviceName), "Client", method.GoName, ") Context() ", contextPackage.Ident("Context"), " {")
 		gfile.P("return s.stream.Context()")
 		gfile.P("}")
 		gfile.P()
-		gfile.P("func (s *", unexport(serviceName), "Service", method.GoName, ") SendMsg(msg interface{}) error {")
+		gfile.P("func (s *", unexport(serviceName), "Client", method.GoName, ") SendMsg(msg interface{}) error {")
 		gfile.P("return s.stream.Send(msg)")
 		gfile.P("}")
 		gfile.P()
-		gfile.P("func (s *", unexport(serviceName), "Service", method.GoName, ") RecvMsg(msg interface{}) error {")
+		gfile.P("func (s *", unexport(serviceName), "Client", method.GoName, ") RecvMsg(msg interface{}) error {")
 		gfile.P("return s.stream.Recv(msg)")
 		gfile.P("}")
 		gfile.P()
 
 		if method.Desc.IsStreamingClient() {
-			gfile.P("func (s *", unexport(serviceName), "Service", method.GoName, ") Send(msg *", gfile.QualifiedGoIdent(method.Input.GoIdent), ") error {")
+			gfile.P("func (s *", unexport(serviceName), "Client", method.GoName, ") Send(msg *", gfile.QualifiedGoIdent(method.Input.GoIdent), ") error {")
 			gfile.P("return s.stream.Send(msg)")
 			gfile.P("}")
 			gfile.P()
 		}
 
 		if method.Desc.IsStreamingServer() {
-			gfile.P("func (s *", unexport(serviceName), "Service", method.GoName, ") Recv() (*", gfile.QualifiedGoIdent(method.Output.GoIdent), ", error) {")
+			gfile.P("func (s *", unexport(serviceName), "Client", method.GoName, ") Recv() (*", gfile.QualifiedGoIdent(method.Output.GoIdent), ", error) {")
 			gfile.P("msg := &", gfile.QualifiedGoIdent(method.Output.GoIdent), "{}")
 			gfile.P("if err := s.stream.Recv(msg); err != nil {")
 			gfile.P("return nil, err")
@@ -167,15 +166,15 @@ func generateServiceClientMethods(gfile *protogen.GeneratedFile, service *protog
 }
 
 func generateServiceServer(gfile *protogen.GeneratedFile, service *protogen.Service) {
-	serviceName := strings.TrimSuffix(service.GoName, "Service")
-	gfile.P("type ", unexport(serviceName), "Handler struct {")
-	gfile.P(serviceName, "Handler")
+	serviceName := service.GoName
+	gfile.P("type ", unexport(serviceName), "Server struct {")
+	gfile.P(serviceName, "Server")
 	gfile.P("}")
 	gfile.P()
 }
 
 func generateServiceServerMethods(gfile *protogen.GeneratedFile, service *protogen.Service) {
-	serviceName := strings.TrimSuffix(service.GoName, "Service")
+	serviceName := service.GoName
 	for _, method := range service.Methods {
 		generateServerFuncSignature(gfile, serviceName, method, true)
 
@@ -185,12 +184,12 @@ func generateServiceServerMethods(gfile *protogen.GeneratedFile, service *protog
 				gfile.P("if err := stream.Recv(msg); err != nil {")
 				gfile.P("return err")
 				gfile.P("}")
-				gfile.P("return h.", serviceName, "Handler.", method.GoName, "(ctx, msg, &", unexport(serviceName), method.GoName, "Stream{stream})")
+				gfile.P("return h.", serviceName, "Server.", method.GoName, "(ctx, msg, &", unexport(serviceName), method.GoName, "Stream{stream})")
 			} else {
-				gfile.P("return h.", serviceName, "Handler.", method.GoName, "(ctx, &", unexport(serviceName), method.GoName, "Stream{stream})")
+				gfile.P("return h.", serviceName, "Server.", method.GoName, "(ctx, &", unexport(serviceName), method.GoName, "Stream{stream})")
 			}
 		} else {
-			gfile.P("return h.", serviceName, "Handler.", method.GoName, "(ctx, req, rsp)")
+			gfile.P("return h.", serviceName, "Server.", method.GoName, "(ctx, req, rsp)")
 		}
 		gfile.P("}")
 		gfile.P()
@@ -255,8 +254,8 @@ func generateServiceServerMethods(gfile *protogen.GeneratedFile, service *protog
 }
 
 func generateServiceRegister(gfile *protogen.GeneratedFile, service *protogen.Service) {
-	serviceName := strings.TrimSuffix(service.GoName, "Service")
-	gfile.P("func Register", serviceName, "Handler(s ", microServerPackage.Ident("Server"), ", sh ", serviceName, "Handler, opts ...", microServerPackage.Ident("HandlerOption"), ") error {")
+	serviceName := service.GoName
+	gfile.P("func Register", serviceName, "Server(s ", microServerPackage.Ident("Server"), ", sh ", serviceName, "Server, opts ...", microServerPackage.Ident("HandlerOption"), ") error {")
 	gfile.P("type ", unexport(serviceName), " interface {")
 	for _, method := range service.Methods {
 		generateServerSignature(gfile, serviceName, method, true)
@@ -265,7 +264,7 @@ func generateServiceRegister(gfile *protogen.GeneratedFile, service *protogen.Se
 	gfile.P("type ", serviceName, " struct {")
 	gfile.P(unexport(serviceName))
 	gfile.P("}")
-	gfile.P("h := &", unexport(serviceName), "Handler{sh}")
+	gfile.P("h := &", unexport(serviceName), "Server{sh}")
 	gfile.P("for _, endpoint := range New", serviceName, "Endpoints() {")
 	gfile.P("opts = append(opts, ", microApiPackage.Ident("WithEndpoint"), "(endpoint))")
 	gfile.P("}")
@@ -275,7 +274,7 @@ func generateServiceRegister(gfile *protogen.GeneratedFile, service *protogen.Se
 
 func generateServerFuncSignature(gfile *protogen.GeneratedFile, serviceName string, method *protogen.Method, private bool) {
 	args := append([]interface{}{},
-		"func (h *", unexport(serviceName), "Handler) ", method.GoName,
+		"func (h *", unexport(serviceName), "Server) ", method.GoName,
 		"(ctx ", contextPackage.Ident("Context"),
 	)
 	if private && (method.Desc.IsStreamingClient() || method.Desc.IsStreamingServer()) {
@@ -321,7 +320,7 @@ func generateClientFuncSignature(gfile *protogen.GeneratedFile, serviceName stri
 	args := append([]interface{}{},
 		"func (c *",
 		unexport(serviceName),
-		"Service) ",
+		"Client) ",
 		method.GoName,
 		"(ctx ", contextPackage.Ident("Context"), ", ",
 	)
@@ -332,7 +331,7 @@ func generateClientFuncSignature(gfile *protogen.GeneratedFile, serviceName stri
 	if !method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
 		args = append(args, "*", gfile.QualifiedGoIdent(method.Output.GoIdent))
 	} else {
-		args = append(args, serviceName, "_", method.GoName, "Service")
+		args = append(args, serviceName, "_", method.GoName, "Client")
 	}
 	args = append(args, ", error) {")
 	gfile.P(args...)
@@ -350,15 +349,15 @@ func generateClientSignature(gfile *protogen.GeneratedFile, serviceName string, 
 	if !method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
 		args = append(args, "*", gfile.QualifiedGoIdent(method.Output.GoIdent))
 	} else {
-		args = append(args, serviceName, "_", method.GoName, "Service")
+		args = append(args, serviceName, "_", method.GoName, "Client")
 	}
 	args = append(args, ", error)")
 	gfile.P(args...)
 }
 
 func generateServiceClientInterface(gfile *protogen.GeneratedFile, service *protogen.Service) {
-	serviceName := strings.TrimSuffix(service.GoName, "Service")
-	gfile.P("type ", serviceName, "Service interface {")
+	serviceName := service.GoName
+	gfile.P("type ", serviceName, "Client interface {")
 	for _, method := range service.Methods {
 		generateClientSignature(gfile, serviceName, method)
 	}
@@ -367,8 +366,8 @@ func generateServiceClientInterface(gfile *protogen.GeneratedFile, service *prot
 }
 
 func generateServiceServerInterface(gfile *protogen.GeneratedFile, service *protogen.Service) {
-	serviceName := strings.TrimSuffix(service.GoName, "Service")
-	gfile.P("type ", serviceName, "Handler interface {")
+	serviceName := service.GoName
+	gfile.P("type ", serviceName, "Server interface {")
 	for _, method := range service.Methods {
 		generateServerSignature(gfile, serviceName, method, false)
 	}
@@ -377,13 +376,13 @@ func generateServiceServerInterface(gfile *protogen.GeneratedFile, service *prot
 }
 
 func generateServiceClientStreamInterface(gfile *protogen.GeneratedFile, service *protogen.Service) {
-	serviceName := strings.TrimSuffix(service.GoName, "Service")
+	serviceName := service.GoName
 	for _, method := range service.Methods {
 		if !method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
 			continue
 		}
 		methodName := method.GoName
-		gfile.P("type ", serviceName, "_", methodName, "Service interface {")
+		gfile.P("type ", serviceName, "_", methodName, "Client interface {")
 		gfile.P("Context() ", contextPackage.Ident("Context"))
 		gfile.P("SendMsg(msg interface{}) error")
 		gfile.P("RecvMsg(msg interface{}) error")
@@ -403,7 +402,7 @@ func generateServiceClientStreamInterface(gfile *protogen.GeneratedFile, service
 }
 
 func generateServiceServerStreamInterface(gfile *protogen.GeneratedFile, service *protogen.Service) {
-	serviceName := strings.TrimSuffix(service.GoName, "Service")
+	serviceName := service.GoName
 	for _, method := range service.Methods {
 		if !method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
 			continue
@@ -429,8 +428,7 @@ func generateServiceServerStreamInterface(gfile *protogen.GeneratedFile, service
 }
 
 func generateServiceEndpoints(gfile *protogen.GeneratedFile, service *protogen.Service) {
-	serviceName := strings.TrimSuffix(service.GoName, "Service")
-	gfile.P("// New", serviceName, "Endpoints provides api endpoints metdata for ", serviceName, " service")
+	serviceName := service.GoName
 	gfile.P("func New", serviceName, "Endpoints() []*", microApiPackage.Ident("Endpoint"), " {")
 	gfile.P("return []*", microApiPackage.Ident("Endpoint"), "{")
 	for _, method := range service.Methods {
