@@ -32,9 +32,9 @@ func unexport(s string) string {
 
 func generateServiceClient(gfile *protogen.GeneratedFile, service *protogen.Service) {
 	serviceName := service.GoName
-	if rule, ok := getMicroApiService(service); ok {
-		gfile.P("// client wrappers ", strings.Join(rule.ClientWrappers, ", "))
-	}
+	//if rule, ok := getMicroApiService(service); ok {
+	//		gfile.P("// client wrappers ", strings.Join(rule.ClientWrappers, ", "))
+	//	}
 	gfile.P("type ", unexport(serviceName), "Client struct {")
 	gfile.P("c ", microClientPackage.Ident("Client"))
 	gfile.P("name string")
@@ -81,6 +81,11 @@ func generateServiceClientMethods(gfile *protogen.GeneratedFile, service *protog
 				}
 
 				gfile.P(")")
+			}
+		}
+		if rule, ok := getMicroApiMethod(method); ok {
+			if rule.Timeout > 0 {
+				gfile.P("opts = append(opts, ", microClientPackage.Ident("WithRequestTimeout"), "(time.Second*", rule.Timeout, "))")
 			}
 		}
 
