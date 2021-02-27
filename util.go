@@ -32,6 +32,9 @@ func unexport(s string) string {
 
 func generateServiceClient(gfile *protogen.GeneratedFile, service *protogen.Service) {
 	serviceName := service.GoName
+	if rule, ok := getMicroApiService(service); ok {
+		gfile.P("// client wrappers ", strings.Join(rule.ClientWrappers, ", "))
+	}
 	gfile.P("type ", unexport(serviceName), "Client struct {")
 	gfile.P("c ", microClientPackage.Ident("Client"))
 	gfile.P("name string")
@@ -177,7 +180,13 @@ func generateServiceServerMethods(gfile *protogen.GeneratedFile, service *protog
 	serviceName := service.GoName
 	for _, method := range service.Methods {
 		generateServerFuncSignature(gfile, serviceName, method, true)
-
+		if rule, ok := getMicroApiMethod(method); ok {
+			if rule.Timeout > 0 {
+				gfile.P("var cancel ", contextPackage.Ident("CancelFunc"))
+				gfile.P("ctx, cancel = ", contextPackage.Ident("WithTimeout"), "(ctx, time.Second*", rule.Timeout, ")")
+				gfile.P("defer cancel()")
+			}
+		}
 		if method.Desc.IsStreamingClient() || method.Desc.IsStreamingServer() {
 			if !method.Desc.IsStreamingClient() {
 				gfile.P("msg := &", gfile.QualifiedGoIdent(method.Input.GoIdent), "{}")
@@ -468,6 +477,42 @@ func generateEndpoints(method *protogen.Method) ([]*api_options.HttpRule, bool) 
 	rules = append(rules, rule.GetAdditionalBindings()...)
 
 	return rules, method.Desc.IsStreamingServer() || method.Desc.IsStreamingClient()
+}
+
+func getMicroApiMethod(method *protogen.Method) (*api_options.MicroMethod, bool) {
+	if method.Desc.Options() == nil {
+		return nil, false
+	}
+
+	if !proto.HasExtension(method.Desc.Options(), api_options.E_MicroMethod) {
+		return nil, false
+	}
+
+	r := proto.GetExtension(method.Desc.Options(), api_options.E_MicroMethod)
+	if r == nil {
+		return nil, false
+	}
+
+	rule := r.(*api_options.MicroMethod)
+	return rule, true
+}
+
+func getMicroApiService(service *protogen.Service) (*api_options.MicroService, bool) {
+	if service.Desc.Options() == nil {
+		return nil, false
+	}
+
+	if !proto.HasExtension(service.Desc.Options(), api_options.E_MicroService) {
+		return nil, false
+	}
+
+	r := proto.GetExtension(service.Desc.Options(), api_options.E_MicroService)
+	if r == nil {
+		return nil, false
+	}
+
+	rule := r.(*api_options.MicroService)
+	return rule, true
 }
 
 func getEndpoint(rule *api_options.HttpRule) (string, string, string) {
