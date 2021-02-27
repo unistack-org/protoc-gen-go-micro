@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	openapi_options "github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options"
-	api_options "google.golang.org/genproto/googleapis/api/annotations"
+	api_options "github.com/unistack-org/micro-proto/api"
+	openapiv2_options "github.com/unistack-org/micro-proto/openapiv2"
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
 )
@@ -50,10 +50,10 @@ func generateServiceClientMethods(gfile *protogen.GeneratedFile, service *protog
 		generateClientFuncSignature(gfile, serviceName, method)
 
 		if http && method.Desc.Options() != nil {
-			if proto.HasExtension(method.Desc.Options(), openapi_options.E_Openapiv2Operation) {
-				opts := proto.GetExtension(method.Desc.Options(), openapi_options.E_Openapiv2Operation)
+			if proto.HasExtension(method.Desc.Options(), openapiv2_options.E_Openapiv2Operation) {
+				opts := proto.GetExtension(method.Desc.Options(), openapiv2_options.E_Openapiv2Operation)
 				if opts != nil {
-					r := opts.(*openapi_options.Operation)
+					r := opts.(*openapiv2_options.Operation)
 					gfile.P("errmap := make(map[string]interface{}, ", len(r.Responses), ")")
 					for code, response := range r.Responses {
 						if response.Schema != nil && response.Schema.JsonSchema != nil {
