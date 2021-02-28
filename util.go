@@ -10,22 +10,6 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-var (
-	reflectPackage         = protogen.GoImportPath("reflect")
-	stringsPackage         = protogen.GoImportPath("strings")
-	fmtPackage             = protogen.GoImportPath("fmt")
-	contextPackage         = protogen.GoImportPath("context")
-	httpPackage            = protogen.GoImportPath("net/http")
-	gorillaMuxPackage      = protogen.GoImportPath("github.com/gorilla/mux")
-	chiPackage             = protogen.GoImportPath("github.com/go-chi/chi/v4")
-	chiMiddlewarePackage   = protogen.GoImportPath("github.com/go-chi/chi/v4/middleware")
-	microApiPackage        = protogen.GoImportPath("github.com/unistack-org/micro/v3/api")
-	microClientPackage     = protogen.GoImportPath("github.com/unistack-org/micro/v3/client")
-	microServerPackage     = protogen.GoImportPath("github.com/unistack-org/micro/v3/server")
-	microClientHttpPackage = protogen.GoImportPath("github.com/unistack-org/micro-client-http/v3")
-	deprecationComment     = "// Deprecated: Do not use."
-)
-
 func unexport(s string) string {
 	return strings.ToLower(s[:1]) + s[1:]
 }
@@ -85,7 +69,7 @@ func generateServiceClientMethods(gfile *protogen.GeneratedFile, service *protog
 		}
 		if rule, ok := getMicroApiMethod(method); ok {
 			if rule.Timeout > 0 {
-				gfile.P("opts = append(opts, ", microClientPackage.Ident("WithRequestTimeout"), "(time.Second*", rule.Timeout, "))")
+				gfile.P("opts = append(opts, ", microClientPackage.Ident("WithRequestTimeout"), "(", timePackage.Ident("Second"), "*", rule.Timeout, "))")
 			}
 		}
 
@@ -188,7 +172,7 @@ func generateServiceServerMethods(gfile *protogen.GeneratedFile, service *protog
 		if rule, ok := getMicroApiMethod(method); ok {
 			if rule.Timeout > 0 {
 				gfile.P("var cancel ", contextPackage.Ident("CancelFunc"))
-				gfile.P("ctx, cancel = ", contextPackage.Ident("WithTimeout"), "(ctx, time.Second*", rule.Timeout, ")")
+				gfile.P("ctx, cancel = ", contextPackage.Ident("WithTimeout"), "(ctx, ", timePackage.Ident("Second"), "*", rule.Timeout, ")")
 				gfile.P("defer cancel()")
 			}
 		}
