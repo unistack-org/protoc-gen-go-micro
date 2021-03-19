@@ -55,15 +55,15 @@ func generateServiceClientMethods(gfile *protogen.GeneratedFile, service *protog
 
 				gfile.P("opts = append(opts,")
 				gfile.P(microClientHttpPackage.Ident("ErrorMap"), "(errmap),")
-
-				if proto.HasExtension(method.Desc.Options(), api_options.E_Http) {
-					endpoints, _ := generateEndpoints(method)
-					path, method, body := getEndpoint(endpoints[0])
-					gfile.P(microClientHttpPackage.Ident("Method"), `("`, method, `"),`)
-					gfile.P(microClientHttpPackage.Ident("Path"), `("`, path, `"),`)
-					gfile.P(microClientHttpPackage.Ident("Body"), `("`, body, `"),`)
-				}
-
+				gfile.P(")")
+			}
+			if proto.HasExtension(method.Desc.Options(), api_options.E_Http) {
+				gfile.P("opts = append(opts,")
+				endpoints, _ := generateEndpoints(method)
+				path, method, body := getEndpoint(endpoints[0])
+				gfile.P(microClientHttpPackage.Ident("Method"), `("`, method, `"),`)
+				gfile.P(microClientHttpPackage.Ident("Path"), `("`, path, `"),`)
+				gfile.P(microClientHttpPackage.Ident("Body"), `("`, body, `"),`)
 				gfile.P(")")
 			}
 		}
