@@ -10,6 +10,20 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+var (
+	httpMethodMap = map[string]string{
+		"GET":     "MethodGet",
+		"HEAD":    "MethodHead",
+		"POST":    "MethodPost",
+		"PUT":     "MethodPut",
+		"PATCH":   "MethodPatch",
+		"DELETE":  "MethodDelete",
+		"CONNECT": "MethodConnect",
+		"OPTIONS": "MethodOptions",
+		"TRACE":   "MethodTrace",
+	}
+)
+
 func unexport(s string) string {
 	return strings.ToLower(s[:1]) + s[1:]
 }
@@ -61,9 +75,15 @@ func generateServiceClientMethods(gfile *protogen.GeneratedFile, service *protog
 				gfile.P("opts = append(opts,")
 				endpoints, _ := generateEndpoints(method)
 				path, method, body := getEndpoint(endpoints[0])
-				gfile.P(microClientHttpPackage.Ident("Method"), `("`, method, `"),`)
+				if vmethod, ok := httpMethodMap[method]; ok {
+					gfile.P(microClientHttpPackage.Ident("Method"), `(`, httpPackage.Ident(vmethod), `),`)
+				} else {
+					gfile.P(microClientHttpPackage.Ident("Method"), `("`, method, `"),`)
+				}
 				gfile.P(microClientHttpPackage.Ident("Path"), `("`, path, `"),`)
-				gfile.P(microClientHttpPackage.Ident("Body"), `("`, body, `"),`)
+				if body != "" {
+					gfile.P(microClientHttpPackage.Ident("Body"), `("`, body, `"),`)
+				}
 				gfile.P(")")
 			}
 		}
@@ -539,8 +559,12 @@ func generateEndpoint(gfile *protogen.GeneratedFile, serviceName string, methodN
 	path, meth, body := getEndpoint(rule)
 	gfile.P("Name:", fmt.Sprintf(`"%s.%s",`, serviceName, methodName))
 	gfile.P("Path:", fmt.Sprintf(`[]string{"%s"},`, path))
-	gfile.P("Method:", fmt.Sprintf(`[]string{"%s"},`, meth))
-	if len(rule.GetGet()) == 0 {
+	if vmethod, ok := httpMethodMap[meth]; ok {
+		gfile.P("Method:", `[]string{`, httpPackage.Ident(vmethod), `},`)
+	} else {
+		gfile.P("Method:", fmt.Sprintf(`[]string{"%s"},`, meth))
+	}
+	if len(rule.GetGet()) == 0 && body != "" {
 		gfile.P("Body:", fmt.Sprintf(`"%s",`, body))
 	}
 	if streaming {
