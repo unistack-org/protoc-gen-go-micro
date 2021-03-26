@@ -283,10 +283,11 @@ func generateServiceRegister(gfile *protogen.GeneratedFile, service *protogen.Se
 	gfile.P(unexport(serviceName))
 	gfile.P("}")
 	gfile.P("h := &", unexport(serviceName), "Server{sh}")
+	gfile.P("var nopts []", microServerPackage.Ident("HandlerOption"))
 	gfile.P("for _, endpoint := range New", serviceName, "Endpoints() {")
-	gfile.P("opts = append(opts, ", microApiPackage.Ident("WithEndpoint"), "(endpoint))")
+	gfile.P("nopts = append(nopts, ", microApiPackage.Ident("WithEndpoint"), "(endpoint))")
 	gfile.P("}")
-	gfile.P("return s.Handle(s.NewHandler(&", serviceName, "{h}, opts...))")
+	gfile.P("return s.Handle(s.NewHandler(&", serviceName, "{h}, append(nopts, opts...)...))")
 	gfile.P("}")
 }
 
@@ -559,11 +560,11 @@ func generateEndpoint(gfile *protogen.GeneratedFile, serviceName string, methodN
 	path, meth, body := getEndpoint(rule)
 	gfile.P("Name:", fmt.Sprintf(`"%s.%s",`, serviceName, methodName))
 	gfile.P("Path:", fmt.Sprintf(`[]string{"%s"},`, path))
-	if vmethod, ok := httpMethodMap[meth]; ok {
-		gfile.P("Method:", `[]string{`, httpPackage.Ident(vmethod), `},`)
-	} else {
-		gfile.P("Method:", fmt.Sprintf(`[]string{"%s"},`, meth))
-	}
+	//if vmethod, ok := httpMethodMap[meth]; ok {
+	//	gfile.P("Method:", `[]string{`, httpPackage.Ident(vmethod), `},`)
+	//} else {
+	gfile.P("Method:", fmt.Sprintf(`[]string{"%s"},`, meth))
+	//	}
 	if len(rule.GetGet()) == 0 && body != "" {
 		gfile.P("Body:", fmt.Sprintf(`"%s",`, body))
 	}

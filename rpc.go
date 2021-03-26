@@ -4,7 +4,7 @@ import (
 	"google.golang.org/protobuf/compiler/protogen"
 )
 
-func (g *Generator) rpcGenerate(component string, plugin *protogen.Plugin) error {
+func (g *Generator) rpcGenerate(component string, plugin *protogen.Plugin, genClient bool, genServer bool) error {
 	for _, file := range plugin.Files {
 		if !file.Generate {
 			continue
@@ -27,15 +27,22 @@ func (g *Generator) rpcGenerate(component string, plugin *protogen.Plugin) error
 
 		gfile.Import(contextPackage)
 		gfile.Import(microApiPackage)
-		gfile.Import(microClientPackage)
-		gfile.Import(microServerPackage)
-
+		if genClient {
+			gfile.Import(microClientPackage)
+		}
+		if genServer {
+			gfile.Import(microServerPackage)
+		}
 		for _, service := range file.Services {
-			generateServiceClient(gfile, service)
-			generateServiceClientMethods(gfile, service, false)
-			generateServiceServer(gfile, service)
-			generateServiceServerMethods(gfile, service)
-			generateServiceRegister(gfile, service)
+			if genClient {
+				generateServiceClient(gfile, service)
+				generateServiceClientMethods(gfile, service, false)
+			}
+			if genServer {
+				generateServiceServer(gfile, service)
+				generateServiceServerMethods(gfile, service)
+				generateServiceRegister(gfile, service)
+			}
 		}
 	}
 
