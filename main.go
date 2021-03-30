@@ -48,6 +48,12 @@ func (g *Generator) Generate(plugin *protogen.Plugin) error {
 	if strings.Contains(g.components, "client") {
 		genClient = true
 	}
+	if strings.Contains(g.components, "rpc") || strings.Contains(g.components, "http") {
+		if !genServer && !genClient {
+			genServer = true
+			genClient = true
+		}
+	}
 
 	// Protoc passes a slice of File structs for us to process
 	for _, component := range strings.Split(g.components, "|") {
