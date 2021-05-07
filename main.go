@@ -13,6 +13,7 @@ var (
 	flagDebug      = flag.Bool("debug", false, "")
 	flagStandalone = flag.Bool("standalone", false, "")
 	flagComponents = flag.String("components", "micro|rpc|http|client|server", "")
+	flagTagPath    = flag.String("tag_path", ".", "")
 )
 
 func main() {
@@ -29,6 +30,7 @@ type Generator struct {
 	components string
 	standalone bool
 	debug      bool
+	tagPath    string
 }
 
 func (g *Generator) Generate(plugin *protogen.Plugin) error {
@@ -37,6 +39,7 @@ func (g *Generator) Generate(plugin *protogen.Plugin) error {
 	g.standalone = *flagStandalone
 	g.debug = *flagDebug
 	g.components = *flagComponents
+	g.tagPath = *flagTagPath
 	plugin.SupportedFeatures = uint64(pluginpb.CodeGeneratorResponse_FEATURE_PROTO3_OPTIONAL)
 
 	var genClient bool
@@ -79,6 +82,11 @@ func (g *Generator) Generate(plugin *protogen.Plugin) error {
 			return err
 		}
 
+	}
+
+	if err = g.astGenerate(plugin); err != nil {
+		plugin.Error(err)
+		return err
 	}
 
 	return nil
