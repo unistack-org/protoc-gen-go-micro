@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package example;
+
+option go_package = "github.com/unistack-org/protoc-gen-micro/v3/example;examplepb";
+
+import "tag/tag.proto";
+import "api/annotations.proto";
+import "openapiv2/annotations.proto";
+import "google/protobuf/wrappers.proto";
+
+service Example {
+	rpc Call(CallReq) returns (CallRsp) {
+		option (micro.openapiv2.openapiv2_operation) = {
+      operation_id: "Call";
+        responses: {
+          key: "default";
+          value: {
+            description: "Error response";
+            schema: {
+              json_schema: {
+                ref: ".example.Error";
+              }
+            }
+          }
+        }
+    };
+		option (micro.api.http) = { post: "/v1/example/call/{name}"; body: "*"; };
+		option (micro.api.micro_method) = { timeout: 5; };
+  };
+};
+
+message CallReq {
+  string name = 1 [(micro.tag.tags) = "xml:\",attr\"" ];
+  string req = 2;
+};
+
+message CallRsp {
+  string rsp = 2;
+};
+
+message Error {
+	string msg = 1;
+};
