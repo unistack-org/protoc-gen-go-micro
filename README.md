@@ -15,6 +15,7 @@ $> protoc --micro_out=debug=true,components="micro|http":. input.proto
 
 | Option                | Default Value | Accepted Values           | Description
 |-----------------------|---------------|---------------------------|-----------------------
+| `tag_path`            | `.`           | `any local path`          | path contains generated protobuf code that needs to be tagged
 | `debug`               | *false*       | `true` or `false`         | if *true*, `protoc` will generate a more verbose output
 | `components`          | `micro`       | `micro rpc http chi gorilla client server` | some values can't coexists like gorilla/chi or rpc/http, values must be concatinated with pipe symbol
 
