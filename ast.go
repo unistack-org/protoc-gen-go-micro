@@ -20,6 +20,9 @@ var (
 )
 
 func (g *Generator) astGenerate(plugin *protogen.Plugin) error {
+	if g.tagPath == "" {
+		return nil
+	}
 	for _, file := range plugin.Files {
 		if !file.Generate {
 			continue

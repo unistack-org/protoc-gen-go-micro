@@ -13,7 +13,7 @@ var (
 	flagDebug      = flag.Bool("debug", false, "")
 	flagStandalone = flag.Bool("standalone", false, "")
 	flagComponents = flag.String("components", "micro|rpc|http|client|server", "")
-	flagTagPath    = flag.String("tag_path", ".", "")
+	flagTagPath    = flag.String("tag_path", "", "")
 )
 
 func main() {
