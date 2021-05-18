@@ -44,7 +44,10 @@ func (g *Generator) astGenerate(plugin *protogen.Plugin) error {
 					if !ok {
 						mp = make(map[string]map[string]*structtag.Tags)
 					}
-					nmp := make(map[string]*structtag.Tags)
+					nmp, ok := mp[message.GoIdent.GoName]
+					if !ok {
+						nmp = make(map[string]*structtag.Tags)
+					}
 					tags, err := structtag.Parse(opts.(string))
 					if err != nil {
 						return err
