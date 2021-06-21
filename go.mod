@@ -1,4 +1,4 @@
-module github.com/unistack-org/protoc-gen-micro/v3
+module github.com/unistack-org/protoc-gen-go-micro/v3
 
 go 1.16
 

@@ -1,4 +1,4 @@
-# `protoc-gen-micro`
+# `protoc-gen-go-micro`
 protobuf plugin to generate helper code for micro framework
 
 A generic **code**/script/data generator based on [Protobuf](https://developers.google.com/protocol-buffers/).
@@ -23,4 +23,4 @@ $> protoc --micro_out=debug=true,components="micro|http":. input.proto
 
 * Install the **go** compiler and tools from https://golang.org/doc/install
 * Install **protoc-gen-go**: `go get google.golang.org/protobuf/cmd/protoc-gen-go`
-* Install **protoc-gen-micro**: `go get github.com/unistack-org/protoc-gen-micro/v3`
+* Install **protoc-gen-go-micro**: `go get github.com/unistack-org/protoc-gen-go-micro/v3`

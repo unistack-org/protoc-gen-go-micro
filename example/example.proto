@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package example;
 
-option go_package = "github.com/unistack-org/protoc-gen-micro/v3/example;examplepb";
+option go_package = "github.com/unistack-org/protoc-gen-go-micro/v3/example;examplepb";
 
 import "tag/tag.proto";
 import "api/annotations.proto";
