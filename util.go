@@ -284,8 +284,8 @@ func generateServiceRegister(gfile *protogen.GeneratedFile, service *protogen.Se
 	gfile.P("}")
 	gfile.P("h := &", unexport(serviceName), "Server{sh}")
 	gfile.P("var nopts []", microServerPackage.Ident("HandlerOption"))
-	gfile.P("for _, endpoint := range New", serviceName, "Endpoints() {")
-	gfile.P("nopts = append(nopts, ", microApiPackage.Ident("WithEndpoint"), "(endpoint))")
+	gfile.P("for _, endpoint := range ", serviceName, "Endpoints {")
+	gfile.P("nopts = append(nopts, ", microApiPackage.Ident("WithEndpoint"), "(&endpoint))")
 	gfile.P("}")
 	gfile.P("return s.Handle(s.NewHandler(&", serviceName, "{h}, append(nopts, opts...)...))")
 	gfile.P("}")
@@ -448,8 +448,8 @@ func generateServiceServerStreamInterface(gfile *protogen.GeneratedFile, service
 
 func generateServiceEndpoints(gfile *protogen.GeneratedFile, service *protogen.Service) {
 	serviceName := service.GoName
-	gfile.P("func New", serviceName, "Endpoints() []*", microApiPackage.Ident("Endpoint"), " {")
-	gfile.P("return []*", microApiPackage.Ident("Endpoint"), "{")
+	gfile.P("var (")
+	gfile.P(serviceName, "Endpoints", "=", "[]", microApiPackage.Ident("Endpoint"), "{")
 	for _, method := range service.Methods {
 		if method.Desc.Options() == nil {
 			continue
@@ -457,13 +457,18 @@ func generateServiceEndpoints(gfile *protogen.GeneratedFile, service *protogen.S
 		if proto.HasExtension(method.Desc.Options(), api_options.E_Http) {
 			endpoints, streaming := generateEndpoints(method)
 			for _, endpoint := range endpoints {
-				gfile.P("&", microApiPackage.Ident("Endpoint"), "{")
+				gfile.P(microApiPackage.Ident("Endpoint"), "{")
 				generateEndpoint(gfile, serviceName, method.GoName, endpoint, streaming)
 				gfile.P("},")
 			}
 		}
 	}
 	gfile.P("}")
+	gfile.P(")")
+	gfile.P()
+
+	gfile.P("func New", serviceName, "Endpoints()", "[]", microApiPackage.Ident("Endpoint"), "{")
+	gfile.P("return ", serviceName, "Endpoints")
 	gfile.P("}")
 	gfile.P()
 }

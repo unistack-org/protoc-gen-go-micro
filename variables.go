@@ -17,5 +17,5 @@ var (
 	microClientHttpPackage = protogen.GoImportPath("github.com/unistack-org/micro-client-http/v3")
 	timePackage            = protogen.GoImportPath("time")
 	deprecationComment     = "// Deprecated: Do not use."
-	versionComment         = "v3.4.0"
+	versionComment         = "v3.4.1"
 )
