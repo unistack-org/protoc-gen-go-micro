@@ -449,6 +449,8 @@ func generateServiceServerStreamInterface(gfile *protogen.GeneratedFile, service
 func generateServiceEndpoints(gfile *protogen.GeneratedFile, service *protogen.Service) {
 	serviceName := service.GoName
 	gfile.P("var (")
+	gfile.P(serviceName, "Name", "=", `"`, serviceName, `"`)
+	gfile.P()
 	gfile.P(serviceName, "Endpoints", "=", "[]", microApiPackage.Ident("Endpoint"), "{")
 	for _, method := range service.Methods {
 		if method.Desc.Options() == nil {
