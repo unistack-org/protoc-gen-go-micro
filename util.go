@@ -55,14 +55,14 @@ func generateServiceClientMethods(gfile *protogen.GeneratedFile, service *protog
 				opts := proto.GetExtension(method.Desc.Options(), openapiv2_options.E_Openapiv2Operation)
 				if opts != nil {
 					r := opts.(*openapiv2_options.Operation)
-					gfile.P("errmap := make(map[string]interface{}, ", len(r.Responses), ")")
-					for code, response := range r.Responses {
-						if response.Schema != nil && response.Schema.JsonSchema != nil {
-							ref := response.Schema.JsonSchema.Ref
+					gfile.P("errmap := make(map[string]interface{}, ", len(r.Responses.ResponseCode), ")")
+					for _, rsp := range r.Responses.ResponseCode {
+						if schema := rsp.Value.GetJsonReference(); schema != nil {
+							ref := schema.XRef
 							if strings.HasPrefix(ref, "."+string(service.Desc.ParentFile().Package())+".") {
 								ref = strings.TrimPrefix(ref, "."+string(service.Desc.ParentFile().Package())+".")
 							}
-							gfile.P(`errmap["`, code, `"] = &`, ref, "{}")
+							gfile.P(`errmap["`, rsp.Name, `"] = &`, ref, "{}")
 						}
 					}
 				}
