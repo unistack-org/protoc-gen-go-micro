@@ -459,7 +459,7 @@ func generateServiceEndpoints(gfile *protogen.GeneratedFile, service *protogen.S
 		if proto.HasExtension(method.Desc.Options(), api_options.E_Http) {
 			endpoints, streaming := generateEndpoints(method)
 			for _, endpoint := range endpoints {
-				gfile.P(microApiPackage.Ident("Endpoint"), "{")
+				gfile.P("{")
 				generateEndpoint(gfile, serviceName, method.GoName, endpoint, streaming)
 				gfile.P("},")
 			}
