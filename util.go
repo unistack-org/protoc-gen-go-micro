@@ -10,19 +10,17 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-var (
-	httpMethodMap = map[string]string{
-		"GET":     "MethodGet",
-		"HEAD":    "MethodHead",
-		"POST":    "MethodPost",
-		"PUT":     "MethodPut",
-		"PATCH":   "MethodPatch",
-		"DELETE":  "MethodDelete",
-		"CONNECT": "MethodConnect",
-		"OPTIONS": "MethodOptions",
-		"TRACE":   "MethodTrace",
-	}
-)
+var httpMethodMap = map[string]string{
+	"GET":     "MethodGet",
+	"HEAD":    "MethodHead",
+	"POST":    "MethodPost",
+	"PUT":     "MethodPut",
+	"PATCH":   "MethodPatch",
+	"DELETE":  "MethodDelete",
+	"CONNECT": "MethodConnect",
+	"OPTIONS": "MethodOptions",
+	"TRACE":   "MethodTrace",
+}
 
 func unexport(s string) string {
 	return strings.ToLower(s[:1]) + s[1:]
@@ -30,7 +28,7 @@ func unexport(s string) string {
 
 func generateServiceClient(gfile *protogen.GeneratedFile, service *protogen.Service) {
 	serviceName := service.GoName
-	//if rule, ok := getMicroApiService(service); ok {
+	// if rule, ok := getMicroApiService(service); ok {
 	//		gfile.P("// client wrappers ", strings.Join(rule.ClientWrappers, ", "))
 	//	}
 	gfile.P("type ", unexport(serviceName), "Client struct {")
@@ -62,7 +60,11 @@ func generateServiceClientMethods(gfile *protogen.GeneratedFile, service *protog
 							if strings.HasPrefix(ref, "."+string(service.Desc.ParentFile().Package())+".") {
 								ref = strings.TrimPrefix(ref, "."+string(service.Desc.ParentFile().Package())+".")
 							}
-							gfile.P(`errmap["`, rsp.Name, `"] = &`, ref, "{}")
+							if ref == "micro.codec.Frame" {
+								gfile.P(`errmap["`, rsp.Name, `"] = &`, microCodecPackage.Ident("Frame"), "{}")
+							} else {
+								gfile.P(`errmap["`, rsp.Name, `"] = &`, ref, "{}")
+							}
 						}
 					}
 				}

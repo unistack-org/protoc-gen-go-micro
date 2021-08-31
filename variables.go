@@ -15,6 +15,7 @@ var (
 	microClientPackage     = protogen.GoImportPath("github.com/unistack-org/micro/v3/client")
 	microServerPackage     = protogen.GoImportPath("github.com/unistack-org/micro/v3/server")
 	microClientHttpPackage = protogen.GoImportPath("github.com/unistack-org/micro-client-http/v3")
+	microCodecPackage      = protogen.GoImportPath("github.com/unistack-org/micro/v3/codec")
 	timePackage            = protogen.GoImportPath("time")
 	deprecationComment     = "// Deprecated: Do not use."
 	versionComment         = "v3.4.2"
