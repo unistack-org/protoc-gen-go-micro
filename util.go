@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	api_options "github.com/unistack-org/micro-proto/api"
-	openapiv2_options "github.com/unistack-org/micro-proto/openapiv2"
+	api_options "go.unistack.org/micro-proto/v3/api"
+	openapiv2_options "go.unistack.org/micro-proto/v3/openapiv2"
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
 )
