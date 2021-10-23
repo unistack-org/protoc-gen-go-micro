@@ -2,24 +2,27 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"net/http"
 	"strings"
 
 	api_options "go.unistack.org/micro-proto/v3/api"
-	openapiv2_options "go.unistack.org/micro-proto/v3/openapiv2"
+	v2 "go.unistack.org/micro-proto/v3/openapiv2"
+	v3 "go.unistack.org/micro-proto/v3/openapiv3"
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
 )
 
 var httpMethodMap = map[string]string{
-	"GET":     "MethodGet",
-	"HEAD":    "MethodHead",
-	"POST":    "MethodPost",
-	"PUT":     "MethodPut",
-	"PATCH":   "MethodPatch",
-	"DELETE":  "MethodDelete",
-	"CONNECT": "MethodConnect",
-	"OPTIONS": "MethodOptions",
-	"TRACE":   "MethodTrace",
+	http.MethodGet:     "MethodGet",
+	http.MethodHead:    "MethodHead",
+	http.MethodPost:    "MethodPost",
+	http.MethodPut:     "MethodPut",
+	http.MethodPatch:   "MethodPatch",
+	http.MethodDelete:  "MethodDelete",
+	http.MethodConnect: "MethodConnect",
+	http.MethodOptions: "MethodOptions",
+	http.MethodTrace:   "MethodTrace",
 }
 
 func unexport(s string) string {
@@ -49,10 +52,10 @@ func generateServiceClientMethods(gfile *protogen.GeneratedFile, service *protog
 		generateClientFuncSignature(gfile, serviceName, method)
 
 		if http && method.Desc.Options() != nil {
-			if proto.HasExtension(method.Desc.Options(), openapiv2_options.E_Openapiv2Operation) {
-				opts := proto.GetExtension(method.Desc.Options(), openapiv2_options.E_Openapiv2Operation)
+			if proto.HasExtension(method.Desc.Options(), v2.E_Openapiv2Operation) {
+				opts := proto.GetExtension(method.Desc.Options(), v2.E_Openapiv2Operation)
 				if opts != nil {
-					r := opts.(*openapiv2_options.Operation)
+					r := opts.(*v2.Operation)
 					gfile.P("errmap := make(map[string]interface{}, ", len(r.Responses.ResponseCode), ")")
 					for _, rsp := range r.Responses.ResponseCode {
 						if schema := rsp.Value.GetJsonReference(); schema != nil {
@@ -60,7 +63,7 @@ func generateServiceClientMethods(gfile *protogen.GeneratedFile, service *protog
 							if strings.HasPrefix(ref, "."+string(service.Desc.ParentFile().Package())+".") {
 								ref = strings.TrimPrefix(ref, "."+string(service.Desc.ParentFile().Package())+".")
 							}
-							if ref == "micro.codec.Frame" {
+							if ref == "micro.codec.Frame" || ref == ".micro.codec.Frame" {
 								gfile.P(`errmap["`, rsp.Name, `"] = &`, microCodecPackage.Ident("Frame"), "{}")
 							} else {
 								gfile.P(`errmap["`, rsp.Name, `"] = &`, ref, "{}")
@@ -68,11 +71,11 @@ func generateServiceClientMethods(gfile *protogen.GeneratedFile, service *protog
 						}
 					}
 				}
-
 				gfile.P("opts = append(opts,")
 				gfile.P(microClientHttpPackage.Ident("ErrorMap"), "(errmap),")
 				gfile.P(")")
 			}
+
 			if proto.HasExtension(method.Desc.Options(), api_options.E_Http) {
 				gfile.P("opts = append(opts,")
 				endpoints, _ := generateEndpoints(method)
@@ -88,7 +91,16 @@ func generateServiceClientMethods(gfile *protogen.GeneratedFile, service *protog
 				}
 				gfile.P(")")
 			}
+
+			// Build a list of header parameters.
+			eopt := proto.GetExtension(method.Desc.Options(), v3.E_Openapiv3Operation)
+			if eopt != nil && eopt != v3.E_Openapiv3Operation.InterfaceOf(v3.E_Openapiv3Operation.Zero()) {
+				opt := eopt.(*v3.Operation)
+				log.Printf("xxx %#+v\n", opt)
+			}
+
 		}
+
 		if rule, ok := getMicroApiMethod(method); ok {
 			if rule.Timeout > 0 {
 				gfile.P("opts = append(opts, ", microClientPackage.Ident("WithRequestTimeout"), "(", timePackage.Ident("Second"), "*", rule.Timeout, "))")

@@ -34,5 +34,5 @@ _cgo_export.*
 *~
 *.swp
 *.swo
-/protoc-gen-micro
+/protoc-gen-go-micro
 
