@@ -11,7 +11,7 @@ import "google/protobuf/wrappers.proto";
 
 service Example {
 	rpc Call(CallReq) returns (CallRsp) {
-		option (micro.openapiv2.openapiv2_operation) = {
+		option (micro.openapiv3.openapiv3_operation) = {
       operation_id: "Call";
         responses: {
           key: "default";

@@ -22,7 +22,6 @@ import (
 	"sort"
 	"strings"
 
-	jsonpbcodec "github.com/unistack-org/micro-codec-jsonpb/v3"
 	annotations "go.unistack.org/micro-proto/v3/api"
 	v3 "go.unistack.org/micro-proto/v3/openapiv3"
 	"google.golang.org/protobuf/compiler/protogen"
@@ -51,7 +50,7 @@ func (g *Generator) openapiv3Generate(component string, plugin *protogen.Plugin)
 
 	d := og.buildDocumentV3(plugin)
 
-	bytes, err := jsonpbcodec.NewCodec(jsonpbcodec.MarshalOptions(jsonpb.MarshalOptions{Indent: "  "})).Marshal(d)
+	bytes, err := (jsonpb.MarshalOptions{Indent: "  "}).Marshal(d)
 	if err != nil {
 		return fmt.Errorf("failed to marshal: %s", err.Error())
 	}
