@@ -10,7 +10,7 @@ This project is a generator plugin for the Google Protocol Buffers compiler (`pr
 ## Usage
 
 ```console
-$> protoc --micro_out=debug=true,components="micro|http":. input.proto
+$> protoc --go_micro_out=debug=true,components="micro|http":. input.proto
 ```
 
 | Option                | Default Value | Accepted Values           | Description
@@ -22,5 +22,5 @@ $> protoc --micro_out=debug=true,components="micro|http":. input.proto
 ## Install
 
 * Install the **go** compiler and tools from https://golang.org/doc/install
-* Install **protoc-gen-go**: `go get google.golang.org/protobuf/cmd/protoc-gen-go`
-* Install **protoc-gen-go-micro**: `go get github.com/unistack-org/protoc-gen-go-micro/v3`
+* Install **protoc-gen-go**: `go install google.golang.org/protobuf/cmd/protoc-gen-go`
+* Install **protoc-gen-go-micro**: `go install go.unistack.org/protoc-gen-go-micro/v3`

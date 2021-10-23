@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
@@ -92,13 +91,39 @@ func generateServiceClientMethods(gfile *protogen.GeneratedFile, service *protog
 				gfile.P(")")
 			}
 
+			parameters := make(map[string]map[string]string)
 			// Build a list of header parameters.
 			eopt := proto.GetExtension(method.Desc.Options(), v3.E_Openapiv3Operation)
 			if eopt != nil && eopt != v3.E_Openapiv3Operation.InterfaceOf(v3.E_Openapiv3Operation.Zero()) {
 				opt := eopt.(*v3.Operation)
-				log.Printf("xxx %#+v\n", opt)
+				for _, paramOrRef := range opt.Parameters {
+					parameter := paramOrRef.GetParameter()
+					if parameter == nil {
+						continue
+					}
+					if parameter.In != "header" && parameter.In != "cookie" {
+						continue
+					}
+					in, ok := parameters[parameter.In]
+					if !ok {
+						in = make(map[string]string)
+						parameters[parameter.In] = in
+					}
+					in[parameter.Name] = fmt.Sprintf("%v", parameter.Required)
+				}
 			}
 
+			if len(parameters) > 0 {
+				gfile.P("opts = append(opts,")
+				for pk, pv := range parameters {
+					params := make([]string, 0, len(pv)/2)
+					for k, v := range pv {
+						params = append(params, k, v)
+					}
+					gfile.P(microClientHttpPackage.Ident(strings.Title(pk)), `("`, strings.Join(params, `" ,"`), `"),`)
+				}
+				gfile.P(")")
+			}
 		}
 
 		if rule, ok := getMicroApiMethod(method); ok {
@@ -221,6 +246,39 @@ func generateServiceServerMethods(gfile *protogen.GeneratedFile, service *protog
 				gfile.P("return h.", serviceName, "Server.", method.GoName, "(ctx, &", unexport(serviceName), method.GoName, "Stream{stream})")
 			}
 		} else {
+			parameters := make(map[string]map[string]string)
+			// Build a list of header parameters.
+			eopt := proto.GetExtension(method.Desc.Options(), v3.E_Openapiv3Operation)
+			if eopt != nil && eopt != v3.E_Openapiv3Operation.InterfaceOf(v3.E_Openapiv3Operation.Zero()) {
+				opt := eopt.(*v3.Operation)
+				for _, paramOrRef := range opt.Parameters {
+					parameter := paramOrRef.GetParameter()
+					if parameter == nil {
+						continue
+					}
+					if parameter.In != "header" && parameter.In != "cookie" {
+						continue
+					}
+					in, ok := parameters[parameter.In]
+					if !ok {
+						in = make(map[string]string)
+						parameters[parameter.In] = in
+					}
+					in[parameter.Name] = fmt.Sprintf("%v", parameter.Required)
+				}
+			}
+
+			if len(parameters) > 0 {
+				gfile.P(microServerHttpPackage.Ident("FillRequest"), `(req, `)
+				for pk, pv := range parameters {
+					params := make([]string, 0, len(pv)/2)
+					for k, v := range pv {
+						params = append(params, k, v)
+					}
+					gfile.P(microServerHttpPackage.Ident(strings.Title(pk)), `("`, strings.Join(params, `" ,"`), `"),`)
+				}
+				gfile.P(")")
+			}
 			gfile.P("return h.", serviceName, "Server.", method.GoName, "(ctx, req, rsp)")
 		}
 		gfile.P("}")
@@ -593,6 +651,4 @@ func generateEndpoint(gfile *protogen.GeneratedFile, serviceName string, methodN
 		gfile.P("Stream: true,")
 	}
 	gfile.P(`Handler: "rpc",`)
-
-	return
 }
