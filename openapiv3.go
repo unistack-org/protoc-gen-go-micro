@@ -222,6 +222,15 @@ func (g *openapiv3Generator) buildOperationV3(
 		parameters = append(parameters, opt.Parameters...)
 	}
 
+	sparameters := make(map[string]struct{})
+	for _, paramOrRef := range parameters {
+		parameter := paramOrRef.GetParameter()
+		if parameter == nil {
+			continue
+		}
+		sparameters[parameter.Name] = struct{}{}
+	}
+
 	// Build a list of path parameters.
 	pathParameters := make([]string, 0)
 	if matches := g.namePattern.FindStringSubmatch(path); matches != nil {
@@ -244,6 +253,10 @@ func (g *openapiv3Generator) buildOperationV3(
 	}
 	// Add the path parameters to the operation parameters.
 	for _, pathParameter := range pathParameters {
+		if _, ok := sparameters[pathParameter]; ok {
+			continue
+		}
+
 		parameters = append(parameters,
 			&v3.ParameterOrReference{
 				Oneof: &v3.ParameterOrReference_Parameter{
@@ -268,6 +281,9 @@ func (g *openapiv3Generator) buildOperationV3(
 		for _, field := range inputMessage.Fields {
 			fieldName := string(field.Desc.Name())
 			if !contains(coveredParameters, fieldName) {
+				if _, ok := sparameters[fieldName]; ok {
+					continue
+				}
 				// Get the field description from the comments.
 				fieldDescription := g.filterCommentString(field.Comments.Leading)
 				parameters = append(parameters,

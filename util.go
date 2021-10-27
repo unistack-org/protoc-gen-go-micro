@@ -269,7 +269,7 @@ func generateServiceServerMethods(gfile *protogen.GeneratedFile, service *protog
 			}
 
 			if len(parameters) > 0 {
-				gfile.P(microServerHttpPackage.Ident("FillRequest"), `(req, `)
+				gfile.P(microServerHttpPackage.Ident("FillRequest"), `(ctx, req, `)
 				for pk, pv := range parameters {
 					params := make([]string, 0, len(pv)/2)
 					for k, v := range pv {
