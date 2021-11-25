@@ -87,7 +87,9 @@ func (g *openapiv3Generator) buildDocumentV3(plugin *protogen.Plugin) *v3.Docume
 			if doc.Openapi != "" {
 				d.Openapi = doc.Openapi
 			}
-			d.Info = proto.Clone(doc.Info).(*v3.Info)
+			if doc.Info != nil {
+				d.Info = proto.Clone(doc.Info).(*v3.Info)
+			}
 			d.Servers = append(d.Servers, doc.Servers...)
 		}
 
