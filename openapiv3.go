@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	"go.unistack.org/micro-proto/v3/api"
+	v2 "go.unistack.org/micro-proto/v3/openapiv2"
 	v3 "go.unistack.org/micro-proto/v3/openapiv3"
 	"google.golang.org/protobuf/compiler/protogen"
 	jsonpb "google.golang.org/protobuf/encoding/protojson"
@@ -243,9 +244,15 @@ func (g *openapiv3Generator) addPathsToDocumentV3(d *v3.Document, file *protogen
 			outputMessage := method.Output
 			operationID := service.GoName + "_" + method.GoName
 
-			eopt := proto.GetExtension(method.Desc.Options(), v3.E_Openapiv3Operation)
-			if eopt != nil && eopt != v3.E_Openapiv3Operation.InterfaceOf(v3.E_Openapiv3Operation.Zero()) {
-				if opt, ok := eopt.(*v3.Operation); ok && opt.OperationId != "" {
+			e2opt := proto.GetExtension(method.Desc.Options(), v2.E_Openapiv2Operation)
+			if e2opt != nil && e2opt != v2.E_Openapiv2Operation.InterfaceOf(v2.E_Openapiv2Operation.Zero()) {
+				if opt, ok := e2opt.(*v2.Operation); ok && opt.OperationId != "" {
+					operationID = opt.OperationId
+				}
+			}
+			e3opt := proto.GetExtension(method.Desc.Options(), v3.E_Openapiv3Operation)
+			if e3opt != nil && e3opt != v3.E_Openapiv3Operation.InterfaceOf(v3.E_Openapiv3Operation.Zero()) {
+				if opt, ok := e3opt.(*v3.Operation); ok && opt.OperationId != "" {
 					operationID = opt.OperationId
 				}
 			}
@@ -342,7 +349,7 @@ func (g *openapiv3Generator) formatMessageName(message *protogen.Message) string
 }
 
 func (g *openapiv3Generator) formatFieldName(field *protogen.Field) string {
-	log.Printf("proto %s json %s", string(field.Desc.Name()), field.Desc.JSONName())
+	// log.Printf("proto %s json %s", string(field.Desc.Name()), field.Desc.JSONName())
 	if g.naming == "proto" {
 		return string(field.Desc.Name())
 	}
@@ -417,7 +424,7 @@ func (g *openapiv3Generator) _buildQueryParamsV3(field *protogen.Field, depths m
 				})
 			return parameters
 		}
-		log.Printf("DDDD %#+v", field.Message)
+
 		// Sub messages are allowed, even circular, as long as the final type is a primitive.
 		// Go through each of the sub message fields
 		for _, subField := range field.Message.Fields {
@@ -591,14 +598,14 @@ func (g *openapiv3Generator) buildOperationV3(
 	if bodyField != "*" {
 		for _, field := range inputMessage.Fields {
 			fieldName := string(field.Desc.Name())
-			log.Printf("bodyfield %v coveredParameters %#+v fieldName %v", bodyField, coveredParameters, fieldName)
+			//	log.Printf("bodyfield %v coveredParameters %#+v fieldName %v", bodyField, coveredParameters, fieldName)
 			if !contains(coveredParameters, fieldName) && fieldName != bodyField {
-				log.Printf("append!!! field %#+v", field)
+				// log.Printf("append!!! field %#+v", field)
 				fieldParams := g.buildQueryParamsV3(field)
-				log.Printf("add param %#+v field %#+v", fieldParams, field)
+				//	log.Printf("add param %#+v field %#+v", fieldParams, field)
 				parameters = append(parameters, fieldParams...)
 			} else {
-				log.Printf("not append")
+				// log.Printf("not append")
 			}
 		}
 	}
