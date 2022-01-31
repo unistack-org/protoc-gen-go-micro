@@ -55,6 +55,9 @@ func generateServiceClientMethods(gfile *protogen.GeneratedFile, service *protog
 				opts := proto.GetExtension(method.Desc.Options(), v2.E_Openapiv2Operation)
 				if opts != nil {
 					r := opts.(*v2.Operation)
+					if r.Responses == nil {
+						goto labelMethod
+					}
 					gfile.P("errmap := make(map[string]interface{}, ", len(r.Responses.ResponseCode), ")")
 					for _, rsp := range r.Responses.ResponseCode {
 						if schema := rsp.Value.GetJsonReference(); schema != nil {
@@ -62,9 +65,51 @@ func generateServiceClientMethods(gfile *protogen.GeneratedFile, service *protog
 							if strings.HasPrefix(ref, "."+string(service.Desc.ParentFile().Package())+".") {
 								ref = strings.TrimPrefix(ref, "."+string(service.Desc.ParentFile().Package())+".")
 							}
-							if ref == "micro.codec.Frame" || ref == ".micro.codec.Frame" {
+							if ref[0] == '.' {
+								ref = ref[1:]
+							}
+							switch ref {
+							case "micro.codec.Frame":
 								gfile.P(`errmap["`, rsp.Name, `"] = &`, microCodecPackage.Ident("Frame"), "{}")
-							} else {
+							case "micro.errors.Error":
+								gfile.P(`errmap["`, rsp.Name, `"] = &`, microErrorsPackage.Ident("Error"), "{}")
+							default:
+								gfile.P(`errmap["`, rsp.Name, `"] = &`, ref, "{}")
+							}
+						}
+					}
+				}
+				gfile.P("opts = append(opts,")
+				gfile.P(microClientHttpPackage.Ident("ErrorMap"), "(errmap),")
+				gfile.P(")")
+			}
+			if proto.HasExtension(method.Desc.Options(), v3.E_Openapiv3Operation) {
+				opts := proto.GetExtension(method.Desc.Options(), v3.E_Openapiv3Operation)
+				if opts != nil {
+					r := opts.(*v3.Operation)
+					if r.Responses == nil {
+						goto labelMethod
+					}
+					resps := r.Responses.ResponseOrReference
+					if r.Responses.GetDefault() != nil {
+						resps = append(resps, &v3.NamedResponseOrReference{Name: "default", Value: r.Responses.GetDefault()})
+					}
+					gfile.P("errmap := make(map[string]interface{}, ", len(resps), ")")
+					for _, rsp := range resps {
+						if schema := rsp.Value.GetReference(); schema != nil {
+							ref := schema.XRef
+							if strings.HasPrefix(ref, "."+string(service.Desc.ParentFile().Package())+".") {
+								ref = strings.TrimPrefix(ref, "."+string(service.Desc.ParentFile().Package())+".")
+							}
+							if ref[0] == '.' {
+								ref = ref[1:]
+							}
+							switch ref {
+							case "micro.codec.Frame":
+								gfile.P(`errmap["`, rsp.Name, `"] = &`, microCodecPackage.Ident("Frame"), "{}")
+							case "micro.errors.Error":
+								gfile.P(`errmap["`, rsp.Name, `"] = &`, microErrorsPackage.Ident("Error"), "{}")
+							default:
 								gfile.P(`errmap["`, rsp.Name, `"] = &`, ref, "{}")
 							}
 						}
@@ -75,6 +120,7 @@ func generateServiceClientMethods(gfile *protogen.GeneratedFile, service *protog
 				gfile.P(")")
 			}
 
+		labelMethod:
 			if proto.HasExtension(method.Desc.Options(), api_options.E_Http) {
 				gfile.P("opts = append(opts,")
 				endpoints, _ := generateEndpoints(method)
@@ -93,10 +139,36 @@ func generateServiceClientMethods(gfile *protogen.GeneratedFile, service *protog
 
 			parameters := make(map[string]map[string]string)
 			// Build a list of header parameters.
-			eopt := proto.GetExtension(method.Desc.Options(), v3.E_Openapiv3Operation)
-			if eopt != nil && eopt != v3.E_Openapiv3Operation.InterfaceOf(v3.E_Openapiv3Operation.Zero()) {
-				opt := eopt.(*v3.Operation)
+			e2opt := proto.GetExtension(method.Desc.Options(), v2.E_Openapiv2Operation)
+			if e2opt != nil && e2opt != v2.E_Openapiv2Operation.InterfaceOf(v2.E_Openapiv2Operation.Zero()) {
+				opt := e2opt.(*v2.Operation)
 				for _, paramOrRef := range opt.Parameters {
+					parameter := paramOrRef.GetParameter()
+					// NonBodyParameter()
+					if parameter == nil {
+						continue
+					}
+					nonBodyParameter := parameter.GetNonBodyParameter()
+					if nonBodyParameter == nil {
+						continue
+					}
+					headerParameter := nonBodyParameter.GetHeaderParameterSubSchema()
+					if headerParameter.In != "header" && headerParameter.In != "cookie" {
+						continue
+					}
+					in, ok := parameters[headerParameter.In]
+					if !ok {
+						in = make(map[string]string)
+						parameters[headerParameter.In] = in
+					}
+					in[headerParameter.Name] = fmt.Sprintf("%v", headerParameter.Required)
+				}
+			}
+			e3opt := proto.GetExtension(method.Desc.Options(), v3.E_Openapiv3Operation)
+			if e3opt != nil && e3opt != v3.E_Openapiv3Operation.InterfaceOf(v3.E_Openapiv3Operation.Zero()) {
+				opt := e3opt.(*v3.Operation)
+				for _, paramOrRef := range opt.Parameters {
+
 					parameter := paramOrRef.GetParameter()
 					if parameter == nil {
 						continue
@@ -165,7 +237,7 @@ func generateServiceClientMethods(gfile *protogen.GeneratedFile, service *protog
 		}
 
 		if method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
-			gfile.P("func (s *", unexport(serviceName), "Client", method.GoName, ") RecvAndClose() (*", gfile.QualifiedGoIdent(method.Output.GoIdent), ", error) {")
+			gfile.P("func (s *", unexport(serviceName), "Client", method.GoName, ") CloseAndRecv() (*", gfile.QualifiedGoIdent(method.Output.GoIdent), ", error) {")
 			gfile.P("msg := &", gfile.QualifiedGoIdent(method.Output.GoIdent), "{}")
 			gfile.P("err := s.RecvMsg(msg)")
 			gfile.P("if err == nil {")
@@ -181,6 +253,10 @@ func generateServiceClientMethods(gfile *protogen.GeneratedFile, service *protog
 		gfile.P()
 		gfile.P("func (s *", unexport(serviceName), "Client", method.GoName, ") Close() error {")
 		gfile.P("return s.stream.Close()")
+		gfile.P("}")
+		gfile.P()
+		gfile.P("func (s *", unexport(serviceName), "Client", method.GoName, ") CloseSend() error {")
+		gfile.P("return s.stream.CloseSend()")
 		gfile.P("}")
 		gfile.P()
 		gfile.P("func (s *", unexport(serviceName), "Client", method.GoName, ") Context() ", contextPackage.Ident("Context"), " {")
@@ -248,9 +324,34 @@ func generateServiceServerMethods(gfile *protogen.GeneratedFile, service *protog
 		} else {
 			parameters := make(map[string]map[string]string)
 			// Build a list of header parameters.
-			eopt := proto.GetExtension(method.Desc.Options(), v3.E_Openapiv3Operation)
-			if eopt != nil && eopt != v3.E_Openapiv3Operation.InterfaceOf(v3.E_Openapiv3Operation.Zero()) {
-				opt := eopt.(*v3.Operation)
+			e2opt := proto.GetExtension(method.Desc.Options(), v2.E_Openapiv2Operation)
+			if e2opt != nil && e2opt != v2.E_Openapiv2Operation.InterfaceOf(v2.E_Openapiv2Operation.Zero()) {
+				opt := e2opt.(*v2.Operation)
+				for _, paramOrRef := range opt.Parameters {
+					parameter := paramOrRef.GetParameter()
+					// NonBodyParameter()
+					if parameter == nil {
+						continue
+					}
+					nonBodyParameter := parameter.GetNonBodyParameter()
+					if nonBodyParameter == nil {
+						continue
+					}
+					headerParameter := nonBodyParameter.GetHeaderParameterSubSchema()
+					if headerParameter.In != "header" && headerParameter.In != "cookie" {
+						continue
+					}
+					in, ok := parameters[headerParameter.In]
+					if !ok {
+						in = make(map[string]string)
+						parameters[headerParameter.In] = in
+					}
+					in[headerParameter.Name] = fmt.Sprintf("%v", headerParameter.Required)
+				}
+			}
+			e3opt := proto.GetExtension(method.Desc.Options(), v3.E_Openapiv3Operation)
+			if e3opt != nil && e3opt != v3.E_Openapiv3Operation.InterfaceOf(v3.E_Openapiv3Operation.Zero()) {
+				opt := e3opt.(*v3.Operation)
 				for _, paramOrRef := range opt.Parameters {
 					parameter := paramOrRef.GetParameter()
 					if parameter == nil {
@@ -478,7 +579,8 @@ func generateServiceClientStreamInterface(gfile *protogen.GeneratedFile, service
 		gfile.P("SendMsg(msg interface{}) error")
 		gfile.P("RecvMsg(msg interface{}) error")
 		if method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
-			gfile.P("RecvAndClose() (*", gfile.QualifiedGoIdent(method.Output.GoIdent), ", error)")
+			gfile.P("CloseAndRecv() (*", gfile.QualifiedGoIdent(method.Output.GoIdent), ", error)")
+			gfile.P("CloseSend() () error")
 		}
 		gfile.P("Close() error")
 		if method.Desc.IsStreamingClient() {
@@ -505,6 +607,7 @@ func generateServiceServerStreamInterface(gfile *protogen.GeneratedFile, service
 		gfile.P("RecvMsg(msg interface{}) error")
 		if method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
 			gfile.P("SendAndClose(msg *", gfile.QualifiedGoIdent(method.Output.GoIdent), ") error")
+			gfile.P("CloseSend() error")
 		}
 		gfile.P("Close() error")
 		if method.Desc.IsStreamingClient() {
