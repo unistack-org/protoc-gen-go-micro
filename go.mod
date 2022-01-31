@@ -8,6 +8,3 @@ require (
 	golang.org/x/tools v0.1.8
 	google.golang.org/protobuf v1.27.1
 )
-
-//replace go.unistack.org/micro/v3 => ../micro
-//replace go.unistack.org/micro-proto => ../micro-proto
