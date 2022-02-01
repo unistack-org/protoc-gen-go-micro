@@ -27,17 +27,19 @@ import (
 	v2 "go.unistack.org/micro-proto/v3/openapiv2"
 	v3 "go.unistack.org/micro-proto/v3/openapiv3"
 	"google.golang.org/protobuf/compiler/protogen"
-	jsonpb "google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
+const (
+	protobufValueName = "AnyJSONValue"
+)
+
 // openapiv3Generator holds internal state needed to generate an OpenAPIv3 document for a transcoded Protocol Buffer service.
 type openapiv3Generator struct {
-	circularDepth int
-	naming        string
-	plugin        *protogen.Plugin
-
+	circularDepth     int
+	naming            string
+	plugin            *protogen.Plugin
 	requiredSchemas   []string // Names of schemas that need to be generated.
 	generatedSchemas  []string // Names of schemas that have already been generated.
 	linterRulePattern *regexp.Regexp
@@ -48,9 +50,10 @@ type openapiv3Generator struct {
 // openapiv3Generate creates a new generator for a protoc plugin invocation.
 func (g *Generator) openapiv3Generate(component string, plugin *protogen.Plugin) error {
 	og := &openapiv3Generator{
-		circularDepth:     2,
-		plugin:            plugin,
-		naming:            "proto",
+		circularDepth: 2,
+		plugin:        plugin,
+		naming:        "proto",
+
 		requiredSchemas:   make([]string, 0),
 		generatedSchemas:  make([]string, 0),
 		linterRulePattern: regexp.MustCompile(`\(-- .* --\)`),
@@ -59,12 +62,10 @@ func (g *Generator) openapiv3Generate(component string, plugin *protogen.Plugin)
 	}
 
 	d := og.buildDocumentV3(plugin)
-
-	bytes, err := (jsonpb.MarshalOptions{Indent: "  "}).Marshal(d)
+	bytes, err := d.YAMLValue("Generated with protoc-gen-go-micro\n")
 	if err != nil {
-		return fmt.Errorf("failed to marshal: %s", err.Error())
+		return fmt.Errorf("failed to marshal yaml: %s", err.Error())
 	}
-
 	outputFile := og.plugin.NewGeneratedFile(g.openapiFile, "")
 	if _, err := outputFile.Write(bytes); err != nil {
 		return fmt.Errorf("failed to write: %s", err.Error())
@@ -349,7 +350,6 @@ func (g *openapiv3Generator) formatMessageName(message *protogen.Message) string
 }
 
 func (g *openapiv3Generator) formatFieldName(field *protogen.Field) string {
-	// log.Printf("proto %s json %s", string(field.Desc.Name()), field.Desc.JSONName())
 	if g.naming == "proto" {
 		return string(field.Desc.Name())
 	}
@@ -402,7 +402,23 @@ func (g *openapiv3Generator) _buildQueryParamsV3(field *protogen.Field, depths m
 		// Map types are not allowed in query parameteres
 		return parameters
 	} else if field.Desc.Kind() == protoreflect.MessageKind {
-		if field.Desc.IsList() {
+		// Represent google.protobuf.Value as reference to the value of const protobufValueName.
+		if g.fullMessageTypeName(field.Desc.Message()) == ".google.protobuf.Value" {
+			fieldSchema := g.schemaOrReferenceForField(field.Desc)
+			parameters = append(parameters,
+				&v3.ParameterOrReference{
+					Oneof: &v3.ParameterOrReference_Parameter{
+						Parameter: &v3.Parameter{
+							Name:        queryFieldName,
+							In:          "query",
+							Description: fieldDescription,
+							Required:    false,
+							Schema:      fieldSchema,
+						},
+					},
+				})
+			return parameters
+		} else if field.Desc.IsList() {
 			// Only non-repeated message types are valid
 			return parameters
 		}
@@ -433,6 +449,7 @@ func (g *openapiv3Generator) _buildQueryParamsV3(field *protogen.Field, depths m
 			if !ok {
 				depths[subFieldFullName] = 0
 			}
+
 			if seen < g.circularDepth {
 				depths[subFieldFullName]++
 				subParams := g._buildQueryParamsV3(subField, depths)
@@ -573,6 +590,7 @@ func (g *openapiv3Generator) buildOperationV3(
 			if _, ok := sparameters[namedPathParameter]; ok {
 				continue
 			}
+
 			parameters = append(parameters,
 				&v3.ParameterOrReference{
 					Oneof: &v3.ParameterOrReference_Parameter{
@@ -598,14 +616,9 @@ func (g *openapiv3Generator) buildOperationV3(
 	if bodyField != "*" {
 		for _, field := range inputMessage.Fields {
 			fieldName := string(field.Desc.Name())
-			//	log.Printf("bodyfield %v coveredParameters %#+v fieldName %v", bodyField, coveredParameters, fieldName)
 			if !contains(coveredParameters, fieldName) && fieldName != bodyField {
-				// log.Printf("append!!! field %#+v", field)
 				fieldParams := g.buildQueryParamsV3(field)
-				//	log.Printf("add param %#+v field %#+v", fieldParams, field)
 				parameters = append(parameters, fieldParams...)
-			} else {
-				// log.Printf("not append")
 			}
 		}
 	}
@@ -646,20 +659,31 @@ func (g *openapiv3Generator) buildOperationV3(
 
 	// If a body field is specified, we need to pass a message as the request body.
 	if bodyField != "" {
-		var bodyFieldScalarTypeName string
-		var bodyFieldMessageTypeName string
+		var requestSchema *v3.SchemaOrReference
+
 		if bodyField == "*" {
 			// Pass the entire request message as the request body.
-			bodyFieldMessageTypeName = g.fullMessageTypeName(inputMessage.Desc)
+			typeName := g.fullMessageTypeName(inputMessage.Desc)
+			requestSchema = g.schemaOrReferenceForType(typeName)
+
 		} else {
 			// If body refers to a message field, use that type.
 			for _, field := range inputMessage.Fields {
 				if string(field.Desc.Name()) == bodyField {
 					switch field.Desc.Kind() {
 					case protoreflect.StringKind:
-						bodyFieldScalarTypeName = "string"
+						requestSchema = &v3.SchemaOrReference{
+							Oneof: &v3.SchemaOrReference_Schema{
+								Schema: &v3.Schema{
+									Type: "string",
+								},
+							},
+						}
+
 					case protoreflect.MessageKind:
-						bodyFieldMessageTypeName = g.fullMessageTypeName(field.Message.Desc)
+						typeName := g.fullMessageTypeName(field.Message.Desc)
+						requestSchema = g.schemaOrReferenceForType(typeName)
+
 					default:
 						log.Printf("unsupported field type %+v", field.Desc)
 					}
@@ -667,37 +691,7 @@ func (g *openapiv3Generator) buildOperationV3(
 				}
 			}
 		}
-		var requestSchema *v3.SchemaOrReference
-		if bodyFieldScalarTypeName != "" {
-			requestSchema = &v3.SchemaOrReference{
-				Oneof: &v3.SchemaOrReference_Schema{
-					Schema: &v3.Schema{
-						Type: bodyFieldScalarTypeName,
-					},
-				},
-			}
-		} else if bodyFieldMessageTypeName != "" {
-			switch bodyFieldMessageTypeName {
-			case ".google.protobuf.Empty":
-				fallthrough
-			case ".google.protobuf.Struct":
-				requestSchema = &v3.SchemaOrReference{
-					Oneof: &v3.SchemaOrReference_Schema{
-						Schema: &v3.Schema{
-							Type: "object",
-						},
-					},
-				}
-			default:
-				requestSchema = &v3.SchemaOrReference{
-					Oneof: &v3.SchemaOrReference_Reference{
-						Reference: &v3.Reference{
-							XRef: g.schemaReferenceForTypeName(bodyFieldMessageTypeName),
-						},
-					},
-				}
-			}
-		}
+
 		op.RequestBody = &v3.RequestBodyOrReference{
 			Oneof: &v3.RequestBodyOrReference_RequestBody{
 				RequestBody: &v3.RequestBody{
@@ -753,6 +747,11 @@ func (g *openapiv3Generator) schemaReferenceForTypeName(typeName string) string 
 	if !contains(g.requiredSchemas, typeName) {
 		g.requiredSchemas = append(g.requiredSchemas, typeName)
 	}
+
+	if typeName == ".google.protobuf.Value" {
+		return "#/components/schemas/" + protobufValueName
+	}
+
 	parts := strings.Split(typeName, ".")
 	lastPart := parts[len(parts)-1]
 	return "#/components/schemas/" + g.formatMessageRef(lastPart)
@@ -768,9 +767,6 @@ func (g *openapiv3Generator) responseContentForMessage(outputMessage *protogen.M
 	typeName := g.fullMessageTypeName(outputMessage.Desc)
 
 	if typeName == ".google.protobuf.Empty" {
-		return &v3.MediaTypes{}
-	}
-	if typeName == ".google.protobuf.Struct" {
 		return &v3.MediaTypes{}
 	}
 
@@ -790,13 +786,7 @@ func (g *openapiv3Generator) responseContentForMessage(outputMessage *protogen.M
 			{
 				Name: "application/json",
 				Value: &v3.MediaType{
-					Schema: &v3.SchemaOrReference{
-						Oneof: &v3.SchemaOrReference_Reference{
-							Reference: &v3.Reference{
-								XRef: g.schemaReferenceForTypeName(g.fullMessageTypeName(outputMessage.Desc)),
-							},
-						},
-					},
+					Schema: g.schemaOrReferenceForType(typeName),
 				},
 			},
 		},
@@ -956,7 +946,6 @@ func (g *openapiv3Generator) schemaOrReferenceForField(field protoreflect.FieldD
 func (g *openapiv3Generator) addSchemasToDocumentV3(d *v3.Document, messages []*protogen.Message) {
 	// For each message, generate a definition.
 	for _, message := range messages {
-
 		if message.Messages != nil {
 			g.addSchemasToDocumentV3(d, message.Messages)
 		}
@@ -968,13 +957,75 @@ func (g *openapiv3Generator) addSchemasToDocumentV3(d *v3.Document, messages []*
 			contains(g.generatedSchemas, typeName) {
 			continue
 		}
+
 		g.generatedSchemas = append(g.generatedSchemas, typeName)
+
+		// google.protobuf.Value is handled like a special value when doing transcoding.
+		// It's interpreted as a "catch all" JSON value, that can be anything.
+		if message.Desc != nil && message.Desc.FullName() == "google.protobuf.Value" {
+			// Add the schema to the components.schema list.
+			description := protobufValueName + ` is a "catch all" type that can hold any JSON value, except null as this is not allowed in OpenAPI`
+
+			d.Components.Schemas.AdditionalProperties = append(d.Components.Schemas.AdditionalProperties,
+				&v3.NamedSchemaOrReference{
+					Name: protobufValueName,
+					Value: &v3.SchemaOrReference{
+						Oneof: &v3.SchemaOrReference_Schema{
+							Schema: &v3.Schema{
+								Description: description,
+								OneOf: []*v3.SchemaOrReference{
+									// type is not allow to be null in OpenAPI
+									{
+										Oneof: &v3.SchemaOrReference_Schema{
+											Schema: &v3.Schema{Type: "string"},
+										},
+									}, {
+										Oneof: &v3.SchemaOrReference_Schema{
+											Schema: &v3.Schema{Type: "number"},
+										},
+									}, {
+										Oneof: &v3.SchemaOrReference_Schema{
+											Schema: &v3.Schema{Type: "integer"},
+										},
+									}, {
+										Oneof: &v3.SchemaOrReference_Schema{
+											Schema: &v3.Schema{Type: "boolean"},
+										},
+									}, {
+										Oneof: &v3.SchemaOrReference_Schema{
+											Schema: &v3.Schema{Type: "object"},
+										},
+									}, {
+										Oneof: &v3.SchemaOrReference_Schema{
+											Schema: &v3.Schema{
+												Type: "array",
+												Items: &v3.ItemsItem{
+													SchemaOrReference: []*v3.SchemaOrReference{{
+														Oneof: &v3.SchemaOrReference_Reference{
+															Reference: &v3.Reference{XRef: "#/components/schemas/" + protobufValueName},
+														},
+													}},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			)
+			continue
+		}
+
 		// Get the message description from the comments.
 		messageDescription := g.filterCommentString(message.Comments.Leading, true)
+
 		// Build an array holding the fields of the message.
 		definitionProperties := &v3.Properties{
 			AdditionalProperties: make([]*v3.NamedSchemaOrReference, 0),
 		}
+
 		var required []string
 		for _, field := range message.Fields {
 			// Check the field annotations to see if this is a readonly or writeonly field.
@@ -1031,6 +1082,7 @@ func (g *openapiv3Generator) addSchemasToDocumentV3(d *v3.Document, messages []*
 				Value: &v3.SchemaOrReference{
 					Oneof: &v3.SchemaOrReference_Schema{
 						Schema: &v3.Schema{
+							Type:        "object",
 							Description: messageDescription,
 							Properties:  definitionProperties,
 							Required:    required,
