@@ -24,7 +24,7 @@ import (
 	"strings"
 
 	"go.unistack.org/micro-proto/v3/api"
-	v2 "go.unistack.org/micro-proto/v3/openapiv2"
+	// v2 "go.unistack.org/micro-proto/v3/openapiv2"
 	v3 "go.unistack.org/micro-proto/v3/openapiv3"
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
@@ -245,12 +245,14 @@ func (g *openapiv3Generator) addPathsToDocumentV3(d *v3.Document, file *protogen
 			outputMessage := method.Output
 			operationID := service.GoName + "_" + method.GoName
 
-			e2opt := proto.GetExtension(method.Desc.Options(), v2.E_Openapiv2Operation)
-			if e2opt != nil && e2opt != v2.E_Openapiv2Operation.InterfaceOf(v2.E_Openapiv2Operation.Zero()) {
-				if opt, ok := e2opt.(*v2.Operation); ok && opt.OperationId != "" {
-					operationID = opt.OperationId
+			/*
+				e2opt := proto.GetExtension(method.Desc.Options(), v2.E_Openapiv2Operation)
+				if e2opt != nil && e2opt != v2.E_Openapiv2Operation.InterfaceOf(v2.E_Openapiv2Operation.Zero()) {
+					if opt, ok := e2opt.(*v2.Operation); ok && opt.OperationId != "" {
+						operationID = opt.OperationId
+					}
 				}
-			}
+			*/
 			e3opt := proto.GetExtension(method.Desc.Options(), v3.E_Openapiv3Operation)
 			if e3opt != nil && e3opt != v3.E_Openapiv3Operation.InterfaceOf(v3.E_Openapiv3Operation.Zero()) {
 				if opt, ok := e3opt.(*v3.Operation); ok && opt.OperationId != "" {
@@ -520,6 +522,21 @@ func (g *openapiv3Generator) buildOperationV3(
 		sparameters[parameter.Name] = struct{}{}
 	}
 
+	if u, err := url.Parse(path); err == nil {
+		mp := u.Query()
+		path = u.Path
+		if mp != nil {
+			for _, field := range inputMessage.Fields {
+				fieldName := string(field.Desc.Name())
+				if _, ok := mp[fieldName]; ok && fieldName != bodyField {
+					fieldParams := g.buildQueryParamsV3(field)
+					parameters = append(parameters, fieldParams...)
+					coveredParameters = append(coveredParameters, fieldName)
+				}
+			}
+		}
+	}
+
 	// Find simple path parameters like {id}
 	if allMatches := g.pathPattern.FindAllStringSubmatch(path, -1); allMatches != nil {
 		for _, matches := range allMatches {
@@ -692,6 +709,8 @@ func (g *openapiv3Generator) buildOperationV3(
 			}
 		}
 
+		ctype := getMediaType(eopt)
+
 		op.RequestBody = &v3.RequestBodyOrReference{
 			Oneof: &v3.RequestBodyOrReference_RequestBody{
 				RequestBody: &v3.RequestBody{
@@ -699,7 +718,7 @@ func (g *openapiv3Generator) buildOperationV3(
 					Content: &v3.MediaTypes{
 						AdditionalProperties: []*v3.NamedMediaType{
 							{
-								Name: "application/json",
+								Name: ctype,
 								Value: &v3.MediaType{
 									Schema: requestSchema,
 								},

@@ -55,6 +55,9 @@ func generateServiceClientMethods(gfile *protogen.GeneratedFile, service *protog
 				opts := proto.GetExtension(method.Desc.Options(), v2.E_Openapiv2Operation)
 				if opts != nil {
 					r := opts.(*v2.Operation)
+					if r.Responses == nil {
+						goto labelMethod
+					}
 					gfile.P("errmap := make(map[string]interface{}, ", len(r.Responses.ResponseCode), ")")
 					for _, rsp := range r.Responses.ResponseCode {
 						if schema := rsp.Value.GetJsonReference(); schema != nil {
@@ -84,8 +87,15 @@ func generateServiceClientMethods(gfile *protogen.GeneratedFile, service *protog
 				opts := proto.GetExtension(method.Desc.Options(), v3.E_Openapiv3Operation)
 				if opts != nil {
 					r := opts.(*v3.Operation)
-					gfile.P("errmap := make(map[string]interface{}, ", len(r.Responses.ResponseOrReference), ")")
-					for _, rsp := range r.Responses.ResponseOrReference {
+					if r.Responses == nil {
+						goto labelMethod
+					}
+					resps := r.Responses.ResponseOrReference
+					if r.Responses.GetDefault() != nil {
+						resps = append(resps, &v3.NamedResponseOrReference{Name: "default", Value: r.Responses.GetDefault()})
+					}
+					gfile.P("errmap := make(map[string]interface{}, ", len(resps), ")")
+					for _, rsp := range resps {
 						if schema := rsp.Value.GetReference(); schema != nil {
 							ref := schema.XRef
 							if strings.HasPrefix(ref, "."+string(service.Desc.ParentFile().Package())+".") {
@@ -110,6 +120,7 @@ func generateServiceClientMethods(gfile *protogen.GeneratedFile, service *protog
 				gfile.P(")")
 			}
 
+		labelMethod:
 			if proto.HasExtension(method.Desc.Options(), api_options.E_Http) {
 				gfile.P("opts = append(opts,")
 				endpoints, _ := generateEndpoints(method)
