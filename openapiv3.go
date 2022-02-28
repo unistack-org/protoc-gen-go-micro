@@ -22,13 +22,14 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 
 	"go.unistack.org/micro-proto/v3/api"
-	// v2 "go.unistack.org/micro-proto/v3/openapiv2"
 	v3 "go.unistack.org/micro-proto/v3/openapiv3"
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
 const (
@@ -47,6 +48,19 @@ type openapiv3Generator struct {
 	namedPathPattern  *regexp.Regexp
 }
 
+var (
+	once       sync.Once
+	protofiles = &protoregistry.Files{}
+)
+
+func protofilesAdd(plugin *protogen.Plugin) {
+	for path, f := range plugin.FilesByPath {
+		if _, err := protofiles.FindFileByPath(path); err != nil {
+			protofiles.RegisterFile(f.Desc)
+		}
+	}
+}
+
 // openapiv3Generate creates a new generator for a protoc plugin invocation.
 func (g *Generator) openapiv3Generate(component string, plugin *protogen.Plugin) error {
 	og := &openapiv3Generator{
@@ -60,6 +74,8 @@ func (g *Generator) openapiv3Generate(component string, plugin *protogen.Plugin)
 		pathPattern:       regexp.MustCompile("{([^=}]+)}"),
 		namedPathPattern:  regexp.MustCompile("{(.+)=(.+)}"),
 	}
+
+	protofilesAdd(plugin)
 
 	d := og.buildDocumentV3(plugin)
 	bytes, err := d.YAMLValue("Generated with protoc-gen-go-micro\n")
@@ -245,14 +261,6 @@ func (g *openapiv3Generator) addPathsToDocumentV3(d *v3.Document, file *protogen
 			outputMessage := method.Output
 			operationID := service.GoName + "_" + method.GoName
 
-			/*
-				e2opt := proto.GetExtension(method.Desc.Options(), v2.E_Openapiv2Operation)
-				if e2opt != nil && e2opt != v2.E_Openapiv2Operation.InterfaceOf(v2.E_Openapiv2Operation.Zero()) {
-					if opt, ok := e2opt.(*v2.Operation); ok && opt.OperationId != "" {
-						operationID = opt.OperationId
-					}
-				}
-			*/
 			e3opt := proto.GetExtension(method.Desc.Options(), v3.E_Openapiv3Operation)
 			if e3opt != nil && e3opt != v3.E_Openapiv3Operation.InterfaceOf(v3.E_Openapiv3Operation.Zero()) {
 				if opt, ok := e3opt.(*v3.Operation); ok && opt.OperationId != "" {
@@ -640,22 +648,71 @@ func (g *openapiv3Generator) buildOperationV3(
 		}
 	}
 
-	// Create the response.
-	responses := &v3.Responses{
-		ResponseOrReference: []*v3.NamedResponseOrReference{
-			{
-				Name: "200",
-				Value: &v3.ResponseOrReference{
-					Oneof: &v3.ResponseOrReference_Response{
-						Response: &v3.Response{
-							Description: "OK",
-							Content:     g.responseContentForMessage(outputMessage),
-						},
+	var responses *v3.Responses
+	if eopt != nil && eopt != v3.E_Openapiv3Operation.InterfaceOf(v3.E_Openapiv3Operation.Zero()) {
+		opt := eopt.(*v3.Operation)
+		if r := opt.Responses; r != nil {
+			responses = r
+		}
+
+		if ref := responses.Default.GetReference(); ref != nil && ref.GetXRef() != "" {
+			xref := strings.TrimPrefix(ref.GetXRef(), ".")
+			description := "Default"
+			if strings.Contains(xref, "micro.errors.Error") {
+				description += " Error"
+			}
+			desc, err := protofiles.FindDescriptorByName(protoreflect.FullName(xref))
+			if err != nil {
+				log.Printf("unknown ref type %s err %v", xref, err)
+			} else {
+				responses.Default.Oneof = &v3.ResponseOrReference_Response{
+					Response: &v3.Response{
+						Description: description,
+						Content: g.responseContentForMessage(&protogen.Message{
+							Desc: desc.(protoreflect.MessageDescriptor),
+						}),
 					},
+				}
+			}
+		}
+		for _, rref := range responses.GetResponseOrReference() {
+			if ref := rref.Value.GetReference(); ref != nil && ref.GetXRef() != "" {
+				xref := strings.TrimPrefix(ref.GetXRef(), ".")
+				description := "Default"
+				if strings.Contains(xref, "micro.errors.Error") {
+					description += " Error"
+				}
+				desc, err := protofiles.FindDescriptorByName(protoreflect.FullName(xref))
+				if err != nil {
+					log.Printf("unknown ref type %s err %v", xref, err)
+				} else {
+					responses.Default.Oneof = &v3.ResponseOrReference_Response{
+						Response: &v3.Response{
+							Description: description,
+							Content: g.responseContentForMessage(&protogen.Message{
+								Desc: desc.(protoreflect.MessageDescriptor),
+							}),
+						},
+					}
+				}
+			}
+		}
+	} else {
+		responses = &v3.Responses{}
+	}
+
+	// Create the response.
+	responses.ResponseOrReference = append(responses.ResponseOrReference, &v3.NamedResponseOrReference{
+		Name: "200",
+		Value: &v3.ResponseOrReference{
+			Oneof: &v3.ResponseOrReference_Response{
+				Response: &v3.Response{
+					Description: "OK",
+					Content:     g.responseContentForMessage(outputMessage),
 				},
 			},
 		},
-	}
+	})
 
 	// Create the operation.
 	op := &v3.Operation{
@@ -682,7 +739,6 @@ func (g *openapiv3Generator) buildOperationV3(
 			// Pass the entire request message as the request body.
 			typeName := g.fullMessageTypeName(inputMessage.Desc)
 			requestSchema = g.schemaOrReferenceForType(typeName)
-
 		} else {
 			// If body refers to a message field, use that type.
 			for _, field := range inputMessage.Fields {
