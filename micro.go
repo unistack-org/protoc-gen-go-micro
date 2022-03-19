@@ -35,14 +35,14 @@ func (g *Generator) microGenerate(component string, plugin *protogen.Plugin, gen
 		}
 		// generate services
 		for _, service := range file.Services {
-			generateServiceEndpoints(gfile, service)
+			g.generateServiceEndpoints(gfile, service)
 			if genClient {
-				generateServiceClientInterface(gfile, service)
-				generateServiceClientStreamInterface(gfile, service)
+				g.generateServiceClientInterface(gfile, service)
+				g.generateServiceClientStreamInterface(gfile, service)
 			}
 			if genServer {
-				generateServiceServerInterface(gfile, service)
-				generateServiceServerStreamInterface(gfile, service)
+				g.generateServiceServerInterface(gfile, service)
+				g.generateServiceServerStreamInterface(gfile, service)
 			}
 		}
 
