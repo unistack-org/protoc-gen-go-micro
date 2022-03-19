@@ -45,11 +45,13 @@ type Generator struct {
 	fieldaligment bool
 	tagPath       string
 	openapiFile   string
+	plugin        *protogen.Plugin
 }
 
 func (g *Generator) Generate(plugin *protogen.Plugin) error {
 	var err error
 
+	g.plugin = plugin
 	g.standalone = *flagStandalone
 	g.debug = *flagDebug
 	g.components = *flagComponents
