@@ -45,13 +45,16 @@ func (g *Generator) generateServiceClient(gfile *protogen.GeneratedFile, service
 	gfile.P()
 }
 
-func (g *Generator) generateServiceClientMethods(gfile *protogen.GeneratedFile, service *protogen.Service, http bool) {
+func (g *Generator) generateServiceClientMethods(gfile *protogen.GeneratedFile, service *protogen.Service, component string) {
 	serviceName := service.GoName
 	for _, method := range service.Methods {
 		methodName := fmt.Sprintf("%s.%s", serviceName, method.GoName)
+		if component == "drpc" {
+			methodName = fmt.Sprintf("%s.%s", method.Parent.Desc.FullName(), method.Desc.Name())
+		}
 		g.generateClientFuncSignature(gfile, serviceName, method)
 
-		if http && method.Desc.Options() != nil {
+		if component == "http" && method.Desc.Options() != nil {
 			if proto.HasExtension(method.Desc.Options(), v2.E_Openapiv2Operation) {
 				opts := proto.GetExtension(method.Desc.Options(), v2.E_Openapiv2Operation)
 				if opts != nil {

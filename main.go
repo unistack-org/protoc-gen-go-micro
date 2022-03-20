@@ -90,7 +90,7 @@ func (g *Generator) Generate(plugin *protogen.Plugin) error {
 		case "http":
 			err = g.httpGenerate(component, plugin, genClient, genServer)
 		case "grpc", "drpc", "rpc":
-			err = g.rpcGenerate("rpc", plugin, genClient, genServer)
+			err = g.rpcGenerate(component, plugin, genClient, genServer)
 		case "gorilla":
 			err = g.gorillaGenerate(component, plugin)
 		case "chi":
