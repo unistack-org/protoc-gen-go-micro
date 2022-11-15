@@ -45,6 +45,9 @@ func (g *Generator) rpcGenerate(component string, plugin *protogen.Plugin, genCl
 				g.generateServiceServerMethods(gfile, service)
 				g.generateServiceRegister(gfile, service)
 			}
+			if component == "grpc" && g.reflection {
+				g.generateServiceDesc(gfile, file, service)
+			}
 		}
 	}
 

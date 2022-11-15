@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	api_options "go.unistack.org/micro-proto/v3/api"
 	v2 "go.unistack.org/micro-proto/v3/openapiv2"
@@ -213,8 +215,14 @@ func (g *Generator) generateServiceClientMethods(gfile *protogen.GeneratedFile, 
 		}
 
 		if rule, ok := getMicroApiMethod(method); ok {
-			if rule.Timeout > 0 {
-				gfile.P("opts = append(opts, ", microClientPackage.Ident("WithRequestTimeout"), "(", timePackage.Ident("Second"), "*", rule.Timeout, "))")
+			if rule.Timeout != "" {
+				td, err := time.ParseDuration(rule.Timeout)
+				if err != nil {
+					log.Printf("parse duration error %s\n", err.Error())
+				} else {
+					gfile.P("td := uint64(", td.Nanoseconds(), ")")
+					gfile.P("opts = append(opts, ", microClientPackage.Ident("WithRequestTimeout"), "(", timePackage.Ident("Nanosecond"), "* ", "td", "))")
+				}
 			}
 		}
 
@@ -287,6 +295,11 @@ func (g *Generator) generateServiceClientMethods(gfile *protogen.GeneratedFile, 
 		gfile.P()
 
 		if method.Desc.IsStreamingClient() {
+			gfile.P("func (s *", unexport(serviceName), "Client", method.GoName, ") Header() ", microMetadataPackage.Ident("Metadata"), "{")
+			gfile.P("return s.stream.Response().Header()")
+			gfile.P("}")
+			gfile.P()
+
 			gfile.P("func (s *", unexport(serviceName), "Client", method.GoName, ") Send(msg *", gfile.QualifiedGoIdent(method.Input.GoIdent), ") error {")
 			gfile.P("return s.stream.Send(msg)")
 			gfile.P("}")
@@ -319,10 +332,16 @@ func (g *Generator) generateServiceServerMethods(gfile *protogen.GeneratedFile, 
 	for _, method := range service.Methods {
 		generateServerFuncSignature(gfile, serviceName, method, true)
 		if rule, ok := getMicroApiMethod(method); ok {
-			if rule.Timeout > 0 {
-				gfile.P("var cancel ", contextPackage.Ident("CancelFunc"))
-				gfile.P("ctx, cancel = ", contextPackage.Ident("WithTimeout"), "(ctx, ", timePackage.Ident("Second"), "*", rule.Timeout, ")")
-				gfile.P("defer cancel()")
+			if rule.Timeout != "" {
+				td, err := time.ParseDuration(rule.Timeout)
+				if err != nil {
+					log.Printf("parse duration error %s\n", err.Error())
+				} else {
+					gfile.P("var cancel ", contextPackage.Ident("CancelFunc"))
+					gfile.P("td := ", timePackage.Ident("Duration"), "(", td.Nanoseconds(), ")")
+					gfile.P("ctx, cancel = ", contextPackage.Ident("WithTimeout"), "(ctx, ", "td", ")")
+					gfile.P("defer cancel()")
+				}
 			}
 		}
 		if method.Desc.IsStreamingClient() || method.Desc.IsStreamingServer() {
@@ -598,6 +617,7 @@ func (g *Generator) generateServiceClientStreamInterface(gfile *protogen.Generat
 		}
 		gfile.P("Close() error")
 		if method.Desc.IsStreamingClient() {
+			gfile.P("Header() ", microMetadataPackage.Ident("Metadata"))
 			gfile.P("Send(msg *", gfile.QualifiedGoIdent(method.Input.GoIdent), ") error")
 		}
 		if method.Desc.IsStreamingServer() {
@@ -797,4 +817,46 @@ func getGoIdentByMessage(messages []*protogen.Message, msg string) (protogen.GoI
 		}
 	}
 	return protogen.GoIdent{}, fmt.Errorf("not found")
+}
+
+func (g *Generator) generateServiceDesc(gfile *protogen.GeneratedFile, file *protogen.File, service *protogen.Service) {
+	serviceName := service.GoName
+
+	gfile.P("// ", serviceName, "_ServiceDesc", " is the ", grpcPackage.Ident("ServiceDesc"), " for ", serviceName, " service.")
+	gfile.P("// It's only intended for direct use with ", grpcPackage.Ident("RegisterService"), ",")
+	gfile.P("// and not to be introspected or modified (even as a copy)")
+	gfile.P("var ", serviceName, "_ServiceDesc", " = ", grpcPackage.Ident("ServiceDesc"), " {")
+	gfile.P("ServiceName: ", strconv.Quote(string(service.Desc.FullName())), ",")
+	gfile.P("HandlerType: (*", serviceName, "Server)(nil),")
+	gfile.P("Methods: []", grpcPackage.Ident("MethodDesc"), "{")
+	for _, method := range service.Methods {
+		if method.Desc.IsStreamingClient() || method.Desc.IsStreamingServer() {
+			continue
+		}
+		gfile.P("{")
+		gfile.P("MethodName: ", strconv.Quote(string(method.Desc.Name())), ",")
+		gfile.P("Handler: ", method.GoName, ",")
+		gfile.P("},")
+	}
+	gfile.P("},")
+	gfile.P("Streams: []", grpcPackage.Ident("StreamDesc"), "{")
+	for _, method := range service.Methods {
+		if !method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
+			continue
+		}
+		gfile.P("{")
+		gfile.P("StreamName: ", strconv.Quote(string(method.Desc.Name())), ",")
+		gfile.P("Handler: ", method.GoName, ",")
+		if method.Desc.IsStreamingServer() {
+			gfile.P("ServerStreams: true,")
+		}
+		if method.Desc.IsStreamingClient() {
+			gfile.P("ClientStreams: true,")
+		}
+		gfile.P("},")
+	}
+	gfile.P("},")
+	gfile.P("Metadata: \"", file.Desc.Path(), "\",")
+	gfile.P("}")
+	gfile.P()
 }

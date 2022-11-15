@@ -26,7 +26,7 @@ service Example {
         }
     };
 		option (micro.api.http) = { post: "/v1/example/call/{name}"; body: "*"; };
-		option (micro.api.micro_method) = { timeout: 5; };
+		option (micro.api.micro_method) = { timeout: "5s"; };
   };
 };
 
