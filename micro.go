@@ -33,12 +33,13 @@ func (g *Generator) microGenerate(component string, plugin *protogen.Plugin, gen
 		gfile.P()
 
 		gfile.Import(contextPackage)
-		gfile.Import(microApiPackage)
+
 		if genClient {
 			gfile.Import(microClientPackage)
 		}
 		// generate services
 		for _, service := range file.Services {
+			g.generateServiceName(gfile, service)
 			g.generateServiceEndpoints(gfile, service)
 			if genClient {
 				g.generateServiceClientInterface(gfile, service)

@@ -4,9 +4,7 @@ import (
 	"google.golang.org/protobuf/compiler/protogen"
 )
 
-var (
-	gorillaPackageFiles map[protogen.GoPackageName]struct{}
-)
+var gorillaPackageFiles map[protogen.GoPackageName]struct{}
 
 func (g *Generator) gorillaGenerate(component string, plugin *protogen.Plugin) error {
 	gorillaPackageFiles = make(map[protogen.GoPackageName]struct{})
@@ -40,20 +38,19 @@ func (g *Generator) gorillaGenerate(component string, plugin *protogen.Plugin) e
 		gfile.Import(httpPackage)
 		gfile.Import(reflectPackage)
 		gfile.Import(stringsPackage)
-		gfile.Import(microApiPackage)
 		gfile.Import(gorillaMuxPackage)
 
-		gfile.P("func RegisterHandlers(r *", gorillaMuxPackage.Ident("Router"), ", h interface{}, eps []*", microApiPackage.Ident("Endpoint"), ") error {")
+		gfile.P("func RegisterHandlers(r *", gorillaMuxPackage.Ident("Router"), ", h interface{}, eps []", microServerHttpPackage.Ident("EndpointMetadata"), ") error {")
 		gfile.P("v := ", reflectPackage.Ident("ValueOf"), "(h)")
 		gfile.P("if v.NumMethod() < 1 {")
 		gfile.P(`return `, fmtPackage.Ident("Errorf"), `("handler has no methods: %T", h)`)
 		gfile.P("}")
 		gfile.P("for _, ep := range eps {")
 		gfile.P(`idx := `, stringsPackage.Ident("Index"), `(ep.Name, ".")`)
-		gfile.P("if idx < 1 || len(ep.Name) <= idx {")
-		gfile.P(`return `, fmtPackage.Ident("Errorf"), `("invalid `, microApiPackage.Ident("Endpoint"), ` name: %s", ep.Name)`)
+		gfile.P(`if idx < 1 || len(ep.Name) <= idx {`)
+		gfile.P(`return `, fmtPackage.Ident("Errorf"), `("invalid endpoint name: %s", ep.Name)`)
 		gfile.P("}")
-		gfile.P("name := ep.Name[idx+1:]")
+		gfile.P(`name := ep.Name[idx+1:]`)
 		gfile.P("m := v.MethodByName(name)")
 		gfile.P("if !m.IsValid() || m.IsZero() {")
 		gfile.P(`return `, fmtPackage.Ident("Errorf"), `("invalid handler, method %s not found", name)`)
@@ -62,7 +59,7 @@ func (g *Generator) gorillaGenerate(component string, plugin *protogen.Plugin) e
 		gfile.P("if !ok {")
 		gfile.P(`return `, fmtPackage.Ident("Errorf"), `("invalid handler: %#+v", m.Interface())`)
 		gfile.P("}")
-		gfile.P("r.HandleFunc(ep.Path[0], rh).Methods(ep.Method...).Name(ep.Name)")
+		gfile.P(`r.HandleFunc(ep.Path, rh).Methods(ep.Method).Name(ep.Name)`)
 		gfile.P("}")
 		gfile.P("return nil")
 		gfile.P("}")

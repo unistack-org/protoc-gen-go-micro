@@ -11,7 +11,6 @@ var (
 	gorillaMuxPackage      = protogen.GoImportPath("github.com/gorilla/mux")
 	chiPackage             = protogen.GoImportPath("github.com/go-chi/chi/v5")
 	chiMiddlewarePackage   = protogen.GoImportPath("github.com/go-chi/chi/v5/middleware")
-	microApiPackage        = protogen.GoImportPath("go.unistack.org/micro/v3/api")
 	microMetadataPackage   = protogen.GoImportPath("go.unistack.org/micro/v3/metadata")
 	microClientPackage     = protogen.GoImportPath("go.unistack.org/micro/v3/client")
 	microServerPackage     = protogen.GoImportPath("go.unistack.org/micro/v3/server")
@@ -22,5 +21,5 @@ var (
 	grpcPackage            = protogen.GoImportPath("google.golang.org/grpc")
 	timePackage            = protogen.GoImportPath("time")
 	deprecationComment     = "// Deprecated: Do not use."
-	versionComment         = "v3.5.3"
+	versionComment         = "v3.10.2"
 )

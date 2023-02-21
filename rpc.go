@@ -28,7 +28,7 @@ func (g *Generator) rpcGenerate(component string, plugin *protogen.Plugin, genCl
 		gfile.P()
 
 		gfile.Import(contextPackage)
-		gfile.Import(microApiPackage)
+
 		if genClient {
 			gfile.Import(microClientPackage)
 		}
