@@ -28,7 +28,6 @@ func (g *Generator) httpGenerate(component string, plugin *protogen.Plugin, genC
 		gfile.P()
 
 		gfile.Import(contextPackage)
-		gfile.Import(microApiPackage)
 
 		if genClient {
 			gfile.Import(microClientPackage)
