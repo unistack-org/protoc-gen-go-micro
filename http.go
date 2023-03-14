@@ -45,7 +45,7 @@ func (g *Generator) httpGenerate(component string, plugin *protogen.Plugin, genC
 			if genServer {
 				generateServiceServer(gfile, service)
 				g.generateServiceServerMethods(gfile, service)
-				g.generateServiceRegister(gfile, service)
+				g.generateServiceRegister(gfile, service, component)
 			}
 		}
 	}

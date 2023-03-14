@@ -477,7 +477,7 @@ func (g *Generator) generateServiceServerMethods(gfile *protogen.GeneratedFile, 
 	}
 }
 
-func (g *Generator) generateServiceRegister(gfile *protogen.GeneratedFile, service *protogen.Service) {
+func (g *Generator) generateServiceRegister(gfile *protogen.GeneratedFile, service *protogen.Service, component string) {
 	serviceName := service.GoName
 	gfile.P("func Register", serviceName, "Server(s ", microServerPackage.Ident("Server"), ", sh ", serviceName, "Server, opts ...", microServerPackage.Ident("HandlerOption"), ") error {")
 	gfile.P("type ", unexport(serviceName), " interface {")
@@ -490,8 +490,9 @@ func (g *Generator) generateServiceRegister(gfile *protogen.GeneratedFile, servi
 	gfile.P("}")
 	gfile.P("h := &", unexport(serviceName), "Server{sh}")
 	gfile.P("var nopts []", microServerPackage.Ident("HandlerOption"))
-	gfile.P("nopts = append(nopts, ", microServerHttpPackage.Ident("HandlerEndpoints"), "(", serviceName, "ServerEndpoints))")
-
+	if component == "http" {
+		gfile.P("nopts = append(nopts, ", microServerHttpPackage.Ident("HandlerEndpoints"), "(", serviceName, "ServerEndpoints))")
+	}
 	gfile.P("return s.Handle(s.NewHandler(&", serviceName, "{h}, append(nopts, opts...)...))")
 	gfile.P("}")
 }
