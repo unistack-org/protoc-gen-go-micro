@@ -28,7 +28,7 @@ func (g *Generator) rpcGenerate(component string, plugin *protogen.Plugin, genCl
 		gfile.P()
 
 		gfile.Import(contextPackage)
-		gfile.Import(microApiPackage)
+
 		if genClient {
 			gfile.Import(microClientPackage)
 		}
@@ -37,13 +37,16 @@ func (g *Generator) rpcGenerate(component string, plugin *protogen.Plugin, genCl
 		}
 		for _, service := range file.Services {
 			if genClient {
-				generateServiceClient(gfile, service)
-				generateServiceClientMethods(gfile, service, false)
+				g.generateServiceClient(gfile, service)
+				g.generateServiceClientMethods(gfile, service, component)
 			}
 			if genServer {
 				generateServiceServer(gfile, service)
-				generateServiceServerMethods(gfile, service)
-				generateServiceRegister(gfile, service)
+				g.generateServiceServerMethods(gfile, service)
+				g.generateServiceRegister(gfile, service, component)
+			}
+			if component == "grpc" && g.reflection {
+				g.generateServiceDesc(gfile, file, service)
 			}
 		}
 	}

@@ -4,9 +4,7 @@ import (
 	"google.golang.org/protobuf/compiler/protogen"
 )
 
-var (
-	chiPackageFiles map[protogen.GoPackageName]struct{}
-)
+var chiPackageFiles map[protogen.GoPackageName]struct{}
 
 func (g *Generator) chiGenerate(component string, plugin *protogen.Plugin) error {
 	chiPackageFiles = make(map[protogen.GoPackageName]struct{})
@@ -43,7 +41,6 @@ func (g *Generator) chiGenerate(component string, plugin *protogen.Plugin) error
 		gfile.Import(stringsPackage)
 		gfile.Import(chiPackage)
 		gfile.Import(chiMiddlewarePackage)
-		gfile.Import(microApiPackage)
 
 		gfile.P("type routeKey struct{}")
 
@@ -52,17 +49,17 @@ func (g *Generator) chiGenerate(component string, plugin *protogen.Plugin) error
 		gfile.P("return value, ok")
 		gfile.P("}")
 		gfile.P()
-		gfile.P("func RegisterHandlers(r *", chiPackage.Ident("Mux"), ", h interface{}, eps []*", microApiPackage.Ident("Endpoint"), ") error {")
+		gfile.P("func RegisterHandlers(r *", chiPackage.Ident("Mux"), ", h interface{}, eps []", microServerHttpPackage.Ident("EndpointMetadata"), ") error {")
 		gfile.P("v := ", reflectPackage.Ident("ValueOf"), "(h)")
 		gfile.P("if v.NumMethod() < 1 {")
 		gfile.P(`return `, fmtPackage.Ident("Errorf"), `("handler has no methods: %T", h)`)
 		gfile.P("}")
 		gfile.P("for _, ep := range eps {")
 		gfile.P(`idx := `, stringsPackage.Ident("Index"), `(ep.Name, ".")`)
-		gfile.P("if idx < 1 || len(ep.Name) <= idx {")
-		gfile.P(`return `, fmtPackage.Ident("Errorf"), `("invalid `, microApiPackage.Ident("Endpoint"), ` name: %s", ep.Name)`)
+		gfile.P(`if idx < 1 || len(ep.Name) <= idx {`)
+		gfile.P(`return `, fmtPackage.Ident("Errorf"), `("invalid endpoint name: %s", ep.Name)`)
 		gfile.P("}")
-		gfile.P("name := ep.Name[idx+1:]")
+		gfile.P(`name := ep.Name[idx+1:]`)
 		gfile.P("m := v.MethodByName(name)")
 		gfile.P("if !m.IsValid() || m.IsZero() {")
 		gfile.P(`return `, fmtPackage.Ident("Errorf"), `("invalid handler, method %s not found", name)`)
@@ -71,9 +68,7 @@ func (g *Generator) chiGenerate(component string, plugin *protogen.Plugin) error
 		gfile.P("if !ok {")
 		gfile.P(`return `, fmtPackage.Ident("Errorf"), `("invalid handler: %#+v", m.Interface())`)
 		gfile.P("}")
-		gfile.P("for _, method := range ep.Method {")
-		gfile.P("r.With(", chiMiddlewarePackage.Ident("WithValue"), "(routeKey{}, ep.Name)).MethodFunc(method, ep.Path[0], rh)")
-		gfile.P("}")
+		gfile.P("r.With(", chiMiddlewarePackage.Ident("WithValue"), `(routeKey{}, ep.Name)).MethodFunc(ep.Method, ep.Path, rh)`)
 		gfile.P("}")
 		gfile.P("return nil")
 		gfile.P("}")

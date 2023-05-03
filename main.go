@@ -18,6 +18,7 @@ var (
 	flagComponents    = flagSet.String("components", "micro|rpc|http|client|server|openapiv3", "specify components to generate")
 	flagTagPath       = flagSet.String("tag_path", "", "tag rewriting dir")
 	flagOpenapiFile   = flagSet.String("openapi_file", "apidocs.swagger.json", "openapi file name")
+	flagReflection    = flagSet.Bool("reflection", false, "enable server reflection support")
 	flagHelp          = flagSet.Bool("help", false, "display help message")
 )
 
@@ -45,17 +46,21 @@ type Generator struct {
 	fieldaligment bool
 	tagPath       string
 	openapiFile   string
+	reflection    bool
+	plugin        *protogen.Plugin
 }
 
 func (g *Generator) Generate(plugin *protogen.Plugin) error {
 	var err error
 
+	g.plugin = plugin
 	g.standalone = *flagStandalone
 	g.debug = *flagDebug
 	g.components = *flagComponents
 	g.fieldaligment = *flagFieldaligment
 	g.tagPath = *flagTagPath
 	g.openapiFile = *flagOpenapiFile
+	g.reflection = *flagReflection
 	plugin.SupportedFeatures = uint64(pluginpb.CodeGeneratorResponse_FEATURE_PROTO3_OPTIONAL)
 
 	var genClient bool
@@ -87,8 +92,8 @@ func (g *Generator) Generate(plugin *protogen.Plugin) error {
 			err = g.microGenerate(component, plugin, genClient, genServer)
 		case "http":
 			err = g.httpGenerate(component, plugin, genClient, genServer)
-		case "grpc", "rpc":
-			err = g.rpcGenerate("rpc", plugin, genClient, genServer)
+		case "grpc", "drpc", "rpc":
+			err = g.rpcGenerate(component, plugin, genClient, genServer)
 		case "gorilla":
 			err = g.gorillaGenerate(component, plugin)
 		case "chi":

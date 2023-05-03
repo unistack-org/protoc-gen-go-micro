@@ -653,49 +653,54 @@ func (g *openapiv3Generator) buildOperationV3(
 		opt := eopt.(*v3.Operation)
 		if r := opt.Responses; r != nil {
 			responses = r
-		}
 
-		if ref := responses.Default.GetReference(); ref != nil && ref.GetXRef() != "" {
-			xref := strings.TrimPrefix(ref.GetXRef(), ".")
-			description := "Default"
-			if strings.Contains(xref, "micro.errors.Error") {
-				description += " Error"
-			}
-			desc, err := protofiles.FindDescriptorByName(protoreflect.FullName(xref))
-			if err != nil {
-				log.Printf("unknown ref type %s err %v", xref, err)
-			} else {
-				responses.Default.Oneof = &v3.ResponseOrReference_Response{
-					Response: &v3.Response{
-						Description: description,
-						Content: g.responseContentForMessage(&protogen.Message{
-							Desc: desc.(protoreflect.MessageDescriptor),
-						}),
-					},
-				}
-			}
-		}
-		for _, rref := range responses.GetResponseOrReference() {
-			if ref := rref.Value.GetReference(); ref != nil && ref.GetXRef() != "" {
-				xref := strings.TrimPrefix(ref.GetXRef(), ".")
-				description := "Default"
-				if strings.Contains(xref, "micro.errors.Error") {
-					description += " Error"
-				}
-				desc, err := protofiles.FindDescriptorByName(protoreflect.FullName(xref))
-				if err != nil {
-					log.Printf("unknown ref type %s err %v", xref, err)
-				} else {
-					responses.Default.Oneof = &v3.ResponseOrReference_Response{
-						Response: &v3.Response{
-							Description: description,
-							Content: g.responseContentForMessage(&protogen.Message{
-								Desc: desc.(protoreflect.MessageDescriptor),
-							}),
-						},
+			rd := responses.Default
+			if rd != nil {
+				if ref := rd.GetReference(); ref != nil && ref.GetXRef() != "" {
+					xref := strings.TrimPrefix(ref.GetXRef(), ".")
+					description := "Default"
+					if strings.Contains(xref, "micro.errors.Error") {
+						description += " Error"
+					}
+					desc, err := protofiles.FindDescriptorByName(protoreflect.FullName(xref))
+					if err != nil {
+						log.Printf("unknown ref type %s err %v", xref, err)
+					} else {
+						responses.Default.Oneof = &v3.ResponseOrReference_Response{
+							Response: &v3.Response{
+								Description: description,
+								Content: g.responseContentForMessage(&protogen.Message{
+									Desc: desc.(protoreflect.MessageDescriptor),
+								}),
+							},
+						}
 					}
 				}
 			}
+			for _, rref := range responses.GetResponseOrReference() {
+				if ref := rref.Value.GetReference(); ref != nil && ref.GetXRef() != "" {
+					xref := strings.TrimPrefix(ref.GetXRef(), ".")
+					description := "Default"
+					if strings.Contains(xref, "micro.errors.Error") {
+						description += " Error"
+					}
+					desc, err := protofiles.FindDescriptorByName(protoreflect.FullName(xref))
+					if err != nil {
+						log.Printf("unknown ref type %s err %v", xref, err)
+					} else {
+						responses.Default.Oneof = &v3.ResponseOrReference_Response{
+							Response: &v3.Response{
+								Description: description,
+								Content: g.responseContentForMessage(&protogen.Message{
+									Desc: desc.(protoreflect.MessageDescriptor),
+								}),
+							},
+						}
+					}
+				}
+			}
+		} else {
+			responses = &v3.Responses{}
 		}
 	} else {
 		responses = &v3.Responses{}
