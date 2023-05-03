@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/fatih/structtag"
-	tag_options "go.unistack.org/micro-proto/v3/tag"
+	tag_options "go.unistack.org/micro-proto/v4/tag"
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
 )
