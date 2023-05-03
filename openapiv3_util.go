@@ -1,6 +1,6 @@
 package main
 
-import v3 "go.unistack.org/micro-proto/v3/openapiv3"
+import v3 "go.unistack.org/micro-proto/v4/openapiv3"
 
 func getMediaType(eopt interface{}) string {
 	ctype := "application/json"
