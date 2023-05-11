@@ -613,7 +613,7 @@ func (g *Generator) generateServiceClientStreamInterface(gfile *protogen.Generat
 		gfile.P("RecvMsg(msg interface{}) error")
 		if method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
 			gfile.P("CloseAndRecv() (*", gfile.QualifiedGoIdent(method.Output.GoIdent), ", error)")
-			gfile.P("CloseSend() () error")
+			gfile.P("CloseSend() error")
 		}
 		gfile.P("Close() error")
 		if method.Desc.IsStreamingClient() {
