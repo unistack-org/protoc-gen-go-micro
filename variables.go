@@ -21,5 +21,5 @@ var (
 	grpcPackage            = protogen.GoImportPath("google.golang.org/grpc")
 	timePackage            = protogen.GoImportPath("time")
 	deprecationComment     = "// Deprecated: Do not use."
-	versionComment         = "v3.10.2"
+	versionComment         = "v3.10.3"
 )
