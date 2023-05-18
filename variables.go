@@ -16,10 +16,10 @@ var (
 	microServerPackage     = protogen.GoImportPath("go.unistack.org/micro/v4/server")
 	microClientHttpPackage = protogen.GoImportPath("go.unistack.org/micro-client-http/v4")
 	microServerHttpPackage = protogen.GoImportPath("go.unistack.org/micro-server-http/v4")
-	microCodecPackage      = protogen.GoImportPath("go.unistack.org/micro/v4/codec")
+	microCodecPackage      = protogen.GoImportPath("go.unistack.org/micro-proto/v4/codec")
 	microErrorsPackage     = protogen.GoImportPath("go.unistack.org/micro/v4/errors")
 	grpcPackage            = protogen.GoImportPath("google.golang.org/grpc")
 	timePackage            = protogen.GoImportPath("time")
 	deprecationComment     = "// Deprecated: Do not use."
-	versionComment         = "v4.0.1"
+	versionComment         = "v4.0.2"
 )
