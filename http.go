@@ -38,14 +38,15 @@ func (g *Generator) httpGenerate(component string, plugin *protogen.Plugin, genC
 		}
 
 		for _, service := range file.Services {
+			g.generateServiceEndpoints(gfile, service, component)
 			if genClient {
-				g.generateServiceClient(gfile, service)
+				g.generateServiceClient(gfile, file, service)
 				g.generateServiceClientMethods(gfile, service, component)
 			}
 			if genServer {
-				generateServiceServer(gfile, service)
+				g.generateServiceServer(gfile, file, service)
 				g.generateServiceServerMethods(gfile, service)
-				g.generateServiceRegister(gfile, service, component)
+				g.generateServiceRegister(gfile, file, service, component)
 			}
 		}
 	}
