@@ -319,7 +319,7 @@ func (g *Generator) generateServiceClientMethods(gfile *protogen.GeneratedFile, 
 	}
 }
 
-func generateServiceServer(gfile *protogen.GeneratedFile, service *protogen.Service) {
+func (g *Generator) generateServiceServer(gfile *protogen.GeneratedFile, service *protogen.Service) {
 	serviceName := service.GoName
 	gfile.P("type ", unexport(serviceName), "Server struct {")
 	gfile.P(serviceName, "Server")
