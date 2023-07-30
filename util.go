@@ -31,7 +31,7 @@ func unexport(s string) string {
 	return strings.ToLower(s[:1]) + s[1:]
 }
 
-func (g *Generator) generateServiceClient(gfile *protogen.GeneratedFile, service *protogen.Service) {
+func (g *Generator) generateServiceClient(gfile *protogen.GeneratedFile, file *protogen.File, service *protogen.Service) {
 	serviceName := service.GoName
 	// if rule, ok := getMicroApiService(service); ok {
 	//		gfile.P("// client wrappers ", strings.Join(rule.ClientWrappers, ", "))
@@ -41,7 +41,11 @@ func (g *Generator) generateServiceClient(gfile *protogen.GeneratedFile, service
 	gfile.P("name string")
 	gfile.P("}")
 
-	gfile.P("func New", serviceName, "Client(name string, c ", microClientPackage.Ident("Client"), ") ", serviceName, "Client {")
+	if g.standalone {
+		gfile.P("func New", serviceName, "Client(name string, c ", microClientPackage.Ident("Client"), ") ", file.GoImportPath.Ident(serviceName), "Client {")
+	} else {
+		gfile.P("func New", serviceName, "Client(name string, c ", microClientPackage.Ident("Client"), ") ", serviceName, "Client {")
+	}
 	gfile.P("return &", unexport(serviceName), "Client{c: c, name: name}")
 	gfile.P("}")
 	gfile.P()
@@ -319,10 +323,14 @@ func (g *Generator) generateServiceClientMethods(gfile *protogen.GeneratedFile, 
 	}
 }
 
-func (g *Generator) generateServiceServer(gfile *protogen.GeneratedFile, service *protogen.Service) {
+func (g *Generator) generateServiceServer(gfile *protogen.GeneratedFile, file *protogen.File, service *protogen.Service) {
 	serviceName := service.GoName
 	gfile.P("type ", unexport(serviceName), "Server struct {")
-	gfile.P(serviceName, "Server")
+	if g.standalone {
+		gfile.P(file.GoImportPath.Ident(serviceName), "Server")
+	} else {
+		gfile.P(serviceName, "Server")
+	}
 	gfile.P("}")
 	gfile.P()
 }
@@ -477,9 +485,13 @@ func (g *Generator) generateServiceServerMethods(gfile *protogen.GeneratedFile, 
 	}
 }
 
-func (g *Generator) generateServiceRegister(gfile *protogen.GeneratedFile, service *protogen.Service, component string) {
+func (g *Generator) generateServiceRegister(gfile *protogen.GeneratedFile, file *protogen.File, service *protogen.Service, component string) {
 	serviceName := service.GoName
-	gfile.P("func Register", serviceName, "Server(s ", microServerPackage.Ident("Server"), ", sh ", serviceName, "Server, opts ...", microServerPackage.Ident("HandlerOption"), ") error {")
+	if g.standalone {
+		gfile.P("func Register", serviceName, "Server(s ", microServerPackage.Ident("Server"), ", sh ", file.GoImportPath.Ident(serviceName), "Server, opts ...", microServerPackage.Ident("HandlerOption"), ") error {")
+	} else {
+		gfile.P("func Register", serviceName, "Server(s ", microServerPackage.Ident("Server"), ", sh ", serviceName, "Server, opts ...", microServerPackage.Ident("HandlerOption"), ") error {")
+	}
 	gfile.P("type ", unexport(serviceName), " interface {")
 	for _, method := range service.Methods {
 		generateServerSignature(gfile, serviceName, method, true)
@@ -491,7 +503,11 @@ func (g *Generator) generateServiceRegister(gfile *protogen.GeneratedFile, servi
 	gfile.P("h := &", unexport(serviceName), "Server{sh}")
 	gfile.P("var nopts []", microServerPackage.Ident("HandlerOption"))
 	if component == "http" {
+		//	if g.standalone {
+		//		gfile.P("nopts = append(nopts, ", microServerHttpPackage.Ident("HandlerEndpoints"), "(", file.GoImportPath.Ident(serviceName), "ServerEndpoints))")
+		//	} else {
 		gfile.P("nopts = append(nopts, ", microServerHttpPackage.Ident("HandlerEndpoints"), "(", serviceName, "ServerEndpoints))")
+		//	}
 	}
 	gfile.P("return s.Handle(s.NewHandler(&", serviceName, "{h}, append(nopts, opts...)...))")
 	gfile.P("}")
