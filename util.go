@@ -839,7 +839,10 @@ func (g *Generator) generateServiceName(gfile *protogen.GeneratedFile, service *
 	gfile.P(")")
 }
 
-func (g *Generator) generateServiceEndpoints(gfile *protogen.GeneratedFile, service *protogen.Service) {
+func (g *Generator) generateServiceEndpoints(gfile *protogen.GeneratedFile, service *protogen.Service, component string) {
+	if component != "http" {
+		return
+	}
 	serviceName := service.GoName
 
 	gfile.P("var (")
