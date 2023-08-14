@@ -488,9 +488,9 @@ func (g *Generator) generateServiceServerMethods(gfile *protogen.GeneratedFile, 
 func (g *Generator) generateServiceRegister(gfile *protogen.GeneratedFile, file *protogen.File, service *protogen.Service, component string) {
 	serviceName := service.GoName
 	if g.standalone {
-		gfile.P("func Register", serviceName, "Server(s ", microServerPackage.Ident("Server"), ", sh ", file.GoImportPath.Ident(serviceName), "Server, opts ...", microServerPackage.Ident("HandlerOption"), ") error {")
+		gfile.P("func Register", serviceName, "Server(s ", microServerPackage.Ident("Server"), ", sh ", file.GoImportPath.Ident(serviceName), "Server, opts ...", microOptionsPackage.Ident("Option"), ") error {")
 	} else {
-		gfile.P("func Register", serviceName, "Server(s ", microServerPackage.Ident("Server"), ", sh ", serviceName, "Server, opts ...", microServerPackage.Ident("HandlerOption"), ") error {")
+		gfile.P("func Register", serviceName, "Server(s ", microServerPackage.Ident("Server"), ", sh ", serviceName, "Server, opts ...", microOptionsPackage.Ident("Option"), ") error {")
 	}
 	gfile.P("type ", unexport(serviceName), " interface {")
 	for _, method := range service.Methods {
@@ -501,7 +501,7 @@ func (g *Generator) generateServiceRegister(gfile *protogen.GeneratedFile, file 
 	gfile.P(unexport(serviceName))
 	gfile.P("}")
 	gfile.P("h := &", unexport(serviceName), "Server{sh}")
-	gfile.P("var nopts []", microServerPackage.Ident("HandlerOption"))
+	gfile.P("var nopts []", microOptionsPackage.Ident("Option"))
 	if component == "http" {
 		//	if g.standalone {
 		//		gfile.P("nopts = append(nopts, ", microServerHttpPackage.Ident("HandlerEndpoints"), "(", file.GoImportPath.Ident(serviceName), "ServerEndpoints))")
@@ -509,7 +509,7 @@ func (g *Generator) generateServiceRegister(gfile *protogen.GeneratedFile, file 
 		gfile.P("nopts = append(nopts, ", microServerHttpPackage.Ident("HandlerEndpoints"), "(", serviceName, "ServerEndpoints))")
 		//	}
 	}
-	gfile.P("return s.Handle(s.NewHandler(&", serviceName, "{h}, append(nopts, opts...)...))")
+	gfile.P("return s.Handle(&", serviceName, "{h}, append(nopts, opts...)...)")
 	gfile.P("}")
 }
 
@@ -568,7 +568,7 @@ func (g *Generator) generateClientFuncSignature(gfile *protogen.GeneratedFile, s
 	if !method.Desc.IsStreamingClient() {
 		args = append(args, "req *", gfile.QualifiedGoIdent(method.Input.GoIdent), ", ")
 	}
-	args = append(args, "opts ...", microClientPackage.Ident("CallOption"), ") (")
+	args = append(args, "opts ...", microOptionsPackage.Ident("Option"), ") (")
 	if !method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
 		args = append(args, "*", gfile.QualifiedGoIdent(method.Output.GoIdent))
 	} else {
@@ -586,7 +586,7 @@ func generateClientSignature(gfile *protogen.GeneratedFile, serviceName string, 
 	if !method.Desc.IsStreamingClient() {
 		args = append(args, "req *", gfile.QualifiedGoIdent(method.Input.GoIdent), ", ")
 	}
-	args = append(args, "opts ...", microClientPackage.Ident("CallOption"), ") (")
+	args = append(args, "opts ...", microOptionsPackage.Ident("Option"), ") (")
 	if !method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
 		args = append(args, "*", gfile.QualifiedGoIdent(method.Output.GoIdent))
 	} else {

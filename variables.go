@@ -18,6 +18,7 @@ var (
 	microServerHttpPackage = protogen.GoImportPath("go.unistack.org/micro-server-http/v4")
 	microCodecPackage      = protogen.GoImportPath("go.unistack.org/micro-proto/v4/codec")
 	microErrorsPackage     = protogen.GoImportPath("go.unistack.org/micro/v4/errors")
+	microOptionsPackage    = protogen.GoImportPath("go.unistack.org/micro/v4/options")
 	grpcPackage            = protogen.GoImportPath("google.golang.org/grpc")
 	timePackage            = protogen.GoImportPath("time")
 	deprecationComment     = "// Deprecated: Do not use."
