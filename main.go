@@ -63,8 +63,8 @@ func (g *Generator) Generate(plugin *protogen.Plugin) error {
 	g.reflection = *flagReflection
 	plugin.SupportedFeatures = uint64(pluginpb.CodeGeneratorResponse_FEATURE_PROTO3_OPTIONAL)
 
-	genClient := true
-	genServer := true
+	var genClient bool
+	var genServer bool
 	var genNone bool
 
 	if strings.Contains(g.components, "server") {
