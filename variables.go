@@ -19,6 +19,7 @@ var (
 	microCodecPackage      = protogen.GoImportPath("go.unistack.org/micro-proto/v3/codec")
 	microErrorsPackage     = protogen.GoImportPath("go.unistack.org/micro/v3/errors")
 	grpcPackage            = protogen.GoImportPath("google.golang.org/grpc")
+	protojsonPackage       = protogen.GoImportPath("google.golang.org/protobuf/encoding/protojson")
 	timePackage            = protogen.GoImportPath("time")
 	deprecationComment     = "// Deprecated: Do not use."
 	versionComment         = "v3.10.4"
