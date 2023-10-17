@@ -90,6 +90,9 @@ func (g *Generator) Generate(plugin *protogen.Plugin) error {
 			continue
 		case "micro":
 			err = g.microGenerate(component, plugin, genClient, genServer)
+			if err == nil {
+				err = g.writeErrors(plugin)
+			}
 		case "http":
 			err = g.httpGenerate(component, plugin, genClient, genServer)
 		case "grpc", "drpc", "rpc":
@@ -111,11 +114,6 @@ func (g *Generator) Generate(plugin *protogen.Plugin) error {
 			return err
 		}
 
-	}
-
-	if err = g.writeErrors(plugin); err != nil {
-		plugin.Error(err)
-		return err
 	}
 
 	if err = g.astGenerate(plugin); err != nil {
