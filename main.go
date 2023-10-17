@@ -113,6 +113,11 @@ func (g *Generator) Generate(plugin *protogen.Plugin) error {
 
 	}
 
+	if err = g.writeErrors(plugin); err != nil {
+		plugin.Error(err)
+		return err
+	}
+
 	if err = g.astGenerate(plugin); err != nil {
 		plugin.Error(err)
 		return err
