@@ -1009,6 +1009,11 @@ func (g *Generator) writeErrors(plugin *protogen.Plugin) error {
 			return err
 		}
 
+		for _, field := range msg.Fields {
+			if field.GoName == "Error" {
+				return fmt.Errorf("failed generate Error() string interface for %s message %s already have Error field", field.Location.SourceFile, msg.Desc.Name())
+			}
+		}
 		gfile.P(`func (m *`, msg.GoIdent.GoName, `) Error() string {`)
 		gfile.P(`buf, _ := marshaler.Marshal(m)`)
 		gfile.P("return string(buf)")
