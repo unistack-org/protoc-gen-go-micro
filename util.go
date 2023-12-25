@@ -572,7 +572,7 @@ func (g *Generator) generateClientFuncSignature(gfile *protogen.GeneratedFile, s
 	if !method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
 		args = append(args, "*", gfile.QualifiedGoIdent(method.Output.GoIdent))
 	} else {
-		args = append(args, serviceName, "_", method.GoName, "Client")
+		args = append(args, gfile.QualifiedGoIdent(protogen.GoIdent{GoName: serviceName + "_" + method.GoName + "Client", GoImportPath: method.Output.GoIdent.GoImportPath}))
 	}
 	args = append(args, ", error) {")
 	gfile.P(args...)
@@ -657,7 +657,7 @@ func (g *Generator) generateServiceServerStreamInterface(gfile *protogen.Generat
 		gfile.P("RecvMsg(msg interface{}) error")
 		if method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer() {
 			gfile.P("SendAndClose(msg *", gfile.QualifiedGoIdent(method.Output.GoIdent), ") error")
-			gfile.P("CloseSend() error")
+			//	gfile.P("CloseSend() error")
 		}
 		gfile.P("Close() error")
 		if method.Desc.IsStreamingClient() {
