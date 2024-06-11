@@ -935,7 +935,9 @@ func (g *Generator) writeErrors(plugin *protogen.Plugin) error {
 									if xref[0] == '.' {
 										xref = xref[1:]
 									}
-									errorsMap[xref] = struct{}{}
+									if g.fileMessage(plugin.Files, xref) {
+										errorsMap[xref] = struct{}{}
+									}
 								}
 							}
 						}
@@ -957,7 +959,9 @@ func (g *Generator) writeErrors(plugin *protogen.Plugin) error {
 									if xref[0] == '.' {
 										xref = xref[1:]
 									}
-									errorsMap[xref] = struct{}{}
+									if g.fileMessage(plugin.Files, xref) {
+										errorsMap[xref] = struct{}{}
+									}
 								}
 							}
 						}
@@ -981,6 +985,7 @@ func (g *Generator) writeErrors(plugin *protogen.Plugin) error {
 			if len(file.Services) == 0 {
 				continue
 			}
+
 			packageName = string(file.GoPackageName)
 			importPath = file.GoImportPath
 			break
@@ -1016,12 +1021,23 @@ func (g *Generator) writeErrors(plugin *protogen.Plugin) error {
 				return fmt.Errorf("failed generate Error() string interface for %s message %s already have Error field", field.Location.SourceFile, msg.Desc.Name())
 			}
 		}
+
 		gfile.P(`func (m *`, msg.GoIdent.GoName, `) Error() string {`)
 		gfile.P(`buf, _ := marshaler.Marshal(m)`)
 		gfile.P("return string(buf)")
 		gfile.P(`}`)
-		// log.Printf("xref %#+v %v\n", msg.GoIdent.GoName, err)
 	}
 
 	return nil
+}
+
+func (g *Generator) fileMessage(files []*protogen.File, xref string) bool {
+	for _, file := range files {
+		for _, msg := range file.Messages {
+			if xref == string(msg.Desc.FullName()) && file.Generate {
+				return true
+			}
+		}
+	}
+	return false
 }

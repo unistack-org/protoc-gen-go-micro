@@ -62,7 +62,7 @@ func protofilesAdd(plugin *protogen.Plugin) {
 }
 
 // openapiv3Generate creates a new generator for a protoc plugin invocation.
-func (g *Generator) openapiv3Generate(component string, plugin *protogen.Plugin) error {
+func (g *Generator) openapiv3Generate(plugin *protogen.Plugin) error {
 	og := &openapiv3Generator{
 		circularDepth: 2,
 		plugin:        plugin,

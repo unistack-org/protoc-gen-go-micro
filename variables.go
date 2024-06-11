@@ -3,6 +3,8 @@ package main
 import "google.golang.org/protobuf/compiler/protogen"
 
 var (
+	ioPackage              = protogen.GoImportPath("io")
+	graphqlPackage         = protogen.GoImportPath("github.com/99designs/gqlgen/graphql")
 	reflectPackage         = protogen.GoImportPath("reflect")
 	stringsPackage         = protogen.GoImportPath("strings")
 	fmtPackage             = protogen.GoImportPath("fmt")
