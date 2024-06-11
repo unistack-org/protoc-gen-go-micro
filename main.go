@@ -15,9 +15,10 @@ var (
 	flagDebug         = flagSet.Bool("debug", false, "debug output")
 	flagStandalone    = flagSet.Bool("standalone", false, "generate file to standalone dir")
 	flagFieldaligment = flagSet.Bool("fieldaligment", false, "align struct fields in generated code")
-	flagComponents    = flagSet.String("components", "micro|rpc|http|client|server|openapiv3", "specify components to generate")
+	flagComponents    = flagSet.String("components", "micro|rpc|http|client|server|openapiv3|graphql", "specify components to generate")
 	flagTagPath       = flagSet.String("tag_path", "", "tag rewriting dir")
-	flagOpenapiFile   = flagSet.String("openapi_file", "apidocs.swagger.json", "openapi file name")
+	flagOpenapiFile   = flagSet.String("openapi_file", "apidocs.swagger.yaml", "openapi file name")
+	flagGraphqlFile   = flagSet.String("openapi_file", "schema.graphqls", "graphql file name")
 	flagReflection    = flagSet.Bool("reflection", false, "enable server reflection support")
 	flagHelp          = flagSet.Bool("help", false, "display help message")
 )
@@ -27,7 +28,7 @@ func main() {
 		ParamFunc: flagSet.Set,
 	}
 
-	flagSet.Parse(os.Args[1:])
+	_ = flagSet.Parse(os.Args[1:])
 
 	if *flagHelp {
 		flagSet.PrintDefaults()
@@ -102,7 +103,9 @@ func (g *Generator) Generate(plugin *protogen.Plugin) error {
 		case "chi":
 			err = g.chiGenerate(component, plugin)
 		case "openapiv3":
-			err = g.openapiv3Generate(component, plugin)
+			err = g.openapiv3Generate(plugin)
+		case "graphqls":
+			err = g.graphqlsGenerate(plugin)
 		case "none":
 			break
 		default:

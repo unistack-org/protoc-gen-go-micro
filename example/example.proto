@@ -8,9 +8,17 @@ import "tag/tag.proto";
 import "api/annotations.proto";
 import "openapiv2/annotations.proto";
 import "google/protobuf/wrappers.proto";
+import "graphql.proto";
 
 service Example {
+  option (graphql.service) = {
+    host: "localhost:9090";
+  };
 	rpc Call(CallReq) returns (CallRsp) {
+    option (graphql.schema) = {
+      type: QUERY
+      name: "Call"
+    };
 		option (micro.openapiv3.openapiv3_operation) = {
       operation_id: "Call";
         responses: {
