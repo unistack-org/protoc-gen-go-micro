@@ -6,32 +6,20 @@ option go_package = "github.com/unistack-org/protoc-gen-go-micro/v3/example;exam
 
 import "tag/tag.proto";
 import "api/annotations.proto";
-import "openapiv2/annotations.proto";
-import "google/protobuf/wrappers.proto";
-import "graphql.proto";
+import "openapiv3/annotations.proto";
+//import "google/protobuf/wrappers.proto";
+import "graphql/graphql.proto";
 
 service Example {
-  option (graphql.service) = {
-    host: "localhost:9090";
-  };
 	rpc Call(CallReq) returns (CallRsp) {
-    option (graphql.schema) = {
-      type: QUERY
-      name: "Call"
-    };
-		option (micro.openapiv3.openapiv3_operation) = {
+    option (micro.graphql.rpc) = {type: QUERY};
+    option (micro.openapiv3.openapiv3_operation) = {
       operation_id: "Call";
-        responses: {
-          key: "default";
-          value: {
-            description: "Error response";
-            schema: {
-              json_schema: {
-                ref: ".example.Error";
-              }
-            }
-          }
-        }
+      responses: {
+        default: {
+          reference: {_ref: ".example.Error"};
+        };
+      };
     };
 		option (micro.api.http) = { post: "/v1/example/call/{name}"; body: "*"; };
 		option (micro.api.micro_method) = { timeout: "5s"; };
@@ -39,7 +27,7 @@ service Example {
 };
 
 message CallReq {
-  string name = 1 [(micro.tag.tags) = "xml:\",attr\"" ];
+  string name = 1 [(micro.graphql.field) = {required: true}]; 
   string req = 2;
 };
 

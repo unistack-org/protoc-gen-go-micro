@@ -1,0 +1,11 @@
+directive @Example on FIELD_DEFINITION
+input CallReqInput {
+	name: String!
+	req: String
+}
+type CallRsp {
+	rsp: String
+}
+type Query {
+	exampleCall(in: CallReqInput): CallRsp
+}

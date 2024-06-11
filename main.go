@@ -18,7 +18,7 @@ var (
 	flagComponents    = flagSet.String("components", "micro|rpc|http|client|server|openapiv3|graphql", "specify components to generate")
 	flagTagPath       = flagSet.String("tag_path", "", "tag rewriting dir")
 	flagOpenapiFile   = flagSet.String("openapi_file", "apidocs.swagger.yaml", "openapi file name")
-	flagGraphqlFile   = flagSet.String("openapi_file", "schema.graphqls", "graphql file name")
+	flagGraphqlFile   = flagSet.String("graphql_file", "schema.graphqls", "graphql file name")
 	flagReflection    = flagSet.Bool("reflection", false, "enable server reflection support")
 	flagHelp          = flagSet.Bool("help", false, "display help message")
 )
@@ -47,6 +47,7 @@ type Generator struct {
 	fieldaligment bool
 	tagPath       string
 	openapiFile   string
+	graphqlFile   string
 	reflection    bool
 	plugin        *protogen.Plugin
 }
@@ -61,6 +62,7 @@ func (g *Generator) Generate(plugin *protogen.Plugin) error {
 	g.fieldaligment = *flagFieldaligment
 	g.tagPath = *flagTagPath
 	g.openapiFile = *flagOpenapiFile
+	g.graphqlFile = *flagGraphqlFile
 	g.reflection = *flagReflection
 	plugin.SupportedFeatures = uint64(pluginpb.CodeGeneratorResponse_FEATURE_PROTO3_OPTIONAL)
 
@@ -106,6 +108,8 @@ func (g *Generator) Generate(plugin *protogen.Plugin) error {
 			err = g.openapiv3Generate(plugin)
 		case "graphqls":
 			err = g.graphqlsGenerate(plugin)
+		case "graphql":
+			err = g.graphqlGenerate(plugin)
 		case "none":
 			break
 		default:

@@ -3,12 +3,9 @@ package main
 import (
 	"bytes"
 	"os"
-	"path"
-	"path/filepath"
-	"strings"
 
-	"github.com/danielvladco/go-proto-gql/pkg/generator"
 	"github.com/vektah/gqlparser/v2/formatter"
+	generator "go.unistack.org/protoc-gen-go-micro/v3/graphql"
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/pluginpb"
@@ -20,7 +17,7 @@ func (g *Generator) graphqlsGenerate(plugin *protogen.Plugin) error {
 		return err
 	}
 
-	gqlDesc, err := generator.NewSchemas(descs, true, true, plugin)
+	gqlDesc, err := generator.NewSchemas(descs, false, false, plugin)
 	if err != nil {
 		return err
 	}
@@ -30,10 +27,9 @@ func (g *Generator) graphqlsGenerate(plugin *protogen.Plugin) error {
 	for _, schema := range gqlDesc {
 		buf := &bytes.Buffer{}
 		formatter.NewFormatter(buf).FormatSchema(schema.AsGraphql())
-		protoFileName := schema.FileDescriptors[0].GetName()
 
 		outFiles = append(outFiles, &pluginpb.CodeGeneratorResponse_File{
-			Name:    proto.String(resolveGraphqlFilename(protoFileName)),
+			Name:    proto.String(g.graphqlFile),
 			Content: proto.String(buf.String()),
 		})
 	}
@@ -57,17 +53,4 @@ func (g *Generator) graphqlsGenerate(plugin *protogen.Plugin) error {
 	}
 
 	return nil
-}
-
-func resolveGraphqlFilename(protoFileName string) string {
-	gqlFileName := "schema." + "graphqls"
-	absProtoFileName, err := filepath.Abs(protoFileName)
-	if err == nil {
-		protoDirSlice := strings.Split(filepath.Dir(absProtoFileName), string(filepath.Separator))
-		if len(protoDirSlice) > 0 {
-			gqlFileName = protoDirSlice[len(protoDirSlice)-1] + "." + "graphqls"
-		}
-	}
-	protoDir, _ := path.Split(protoFileName)
-	return path.Join(protoDir, gqlFileName)
 }
