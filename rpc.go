@@ -38,7 +38,7 @@ func (g *Generator) rpcGenerate(component string, plugin *protogen.Plugin, genCl
 		for _, service := range file.Services {
 			if genClient {
 				g.generateServiceClient(gfile, file, service)
-				g.generateServiceClientMethods(gfile, service, component)
+				g.generateServiceClientMethods(gfile, file, service, component)
 			}
 			if genServer {
 				g.generateServiceServer(gfile, file, service)
