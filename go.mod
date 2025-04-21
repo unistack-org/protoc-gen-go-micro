@@ -10,7 +10,7 @@ require (
 	github.com/vektah/gqlparser/v2 v2.5.20
 	go.unistack.org/micro-proto/v3 v3.4.1
 	golang.org/x/tools v0.28.0
-	google.golang.org/protobuf v1.35.2
+	google.golang.org/protobuf v1.36.6
 )
 
 require (
