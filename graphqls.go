@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/vektah/gqlparser/v2/formatter"
-	generator "go.unistack.org/protoc-gen-go-micro/v3/graphql"
+	generator "go.unistack.org/protoc-gen-go-micro/v4/graphql"
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/pluginpb"

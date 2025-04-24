@@ -1,4 +1,4 @@
-module go.unistack.org/protoc-gen-go-micro/v3
+module go.unistack.org/protoc-gen-go-micro/v4
 
 go 1.22.0
 
@@ -8,7 +8,7 @@ require (
 	github.com/fatih/structtag v1.2.0
 	github.com/jhump/protoreflect v1.17.0
 	github.com/vektah/gqlparser/v2 v2.5.20
-	go.unistack.org/micro-proto/v3 v3.4.1
+	go.unistack.org/micro-proto/v4 v4.1.0
 	golang.org/x/tools v0.28.0
 	google.golang.org/protobuf v1.35.2
 )
