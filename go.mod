@@ -7,7 +7,7 @@ toolchain go1.23.4
 require (
 	github.com/fatih/structtag v1.2.0
 	github.com/jhump/protoreflect v1.17.0
-	github.com/vektah/gqlparser/v2 v2.5.20
+	github.com/vektah/gqlparser/v2 v2.5.27
 	go.unistack.org/micro-proto/v4 v4.1.0
 	golang.org/x/tools v0.28.0
 	google.golang.org/protobuf v1.35.2
