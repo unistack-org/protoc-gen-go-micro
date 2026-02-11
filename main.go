@@ -106,10 +106,10 @@ func (g *Generator) Generate(plugin *protogen.Plugin) error {
 			err = g.chiGenerate(component, plugin)
 		case "openapiv3":
 			err = g.openapiv3Generate(plugin)
-		case "graphqls":
-			err = g.graphqlsGenerate(plugin)
-		case "graphql":
-			err = g.graphqlGenerate(plugin)
+	//	case "graphqls":
+	//		err = g.graphqlsGenerate(plugin)
+	//	case "graphql":
+	//		err = g.graphqlGenerate(plugin)
 		case "none":
 			break
 		default:
