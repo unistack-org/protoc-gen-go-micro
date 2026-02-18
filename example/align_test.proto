@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package example;
+
+option go_package = "github.com/unistack-org/protoc-gen-go-micro/v3/example;examplepb";
+
+message PaddingWaste {
+  bool   flag_a  = 1;
+  int64  value   = 2;
+  bool   flag_b  = 3;
+}

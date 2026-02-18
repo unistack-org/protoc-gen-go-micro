@@ -36,3 +36,4 @@ _cgo_export.*
 *.swo
 /protoc-gen-go-micro
 
+/example/out
