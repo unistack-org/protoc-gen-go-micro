@@ -1,6 +1,10 @@
 package main
 
-import "google.golang.org/protobuf/compiler/protogen"
+import (
+	"runtime/debug"
+
+	"google.golang.org/protobuf/compiler/protogen"
+)
 
 var (
 	ioPackage              = protogen.GoImportPath("io")
@@ -24,5 +28,10 @@ var (
 	protojsonPackage       = protogen.GoImportPath("google.golang.org/protobuf/encoding/protojson")
 	timePackage            = protogen.GoImportPath("time")
 	deprecationComment     = "// Deprecated: Do not use."
-	versionComment         = "v3.10.4"
+	versionComment         = func() string {
+		if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" && info.Main.Version != "(devel)" {
+			return info.Main.Version
+		}
+		return "(devel)"
+	}()
 )
