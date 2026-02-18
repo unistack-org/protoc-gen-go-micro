@@ -24,12 +24,6 @@ var (
 )
 
 func main() {
-	opts := &protogen.Options{
-		ParamFunc: flagSet.Set,
-	}
-
-	_ = flagSet.Parse(os.Args[1:])
-
 	if *flagHelp {
 		flagSet.PrintDefaults()
 		return
@@ -37,6 +31,9 @@ func main() {
 
 	g := &Generator{}
 
+	opts := &protogen.Options{
+		ParamFunc: flagSet.Set,
+	}
 	opts.Run(g.Generate)
 }
 
@@ -106,10 +103,10 @@ func (g *Generator) Generate(plugin *protogen.Plugin) error {
 			err = g.chiGenerate(component, plugin)
 		case "openapiv3":
 			err = g.openapiv3Generate(plugin)
-	//	case "graphqls":
-	//		err = g.graphqlsGenerate(plugin)
-	//	case "graphql":
-	//		err = g.graphqlGenerate(plugin)
+			//	case "graphqls":
+			//		err = g.graphqlsGenerate(plugin)
+			//	case "graphql":
+			//		err = g.graphqlGenerate(plugin)
 		case "none":
 			break
 		default:

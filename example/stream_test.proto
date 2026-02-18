@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package example;
+
+option go_package = "github.com/unistack-org/protoc-gen-go-micro/v3/example;examplepb";
+
+service StreamExample {
+  // server-side streaming
+  rpc ServerStream(StreamReq) returns (stream StreamRsp) {};
+  // client-side streaming
+  rpc ClientStream(stream StreamReq) returns (StreamRsp) {};
+  // bidirectional streaming
+  rpc BidiStream(stream StreamReq) returns (stream StreamRsp) {};
+}
+
+message StreamReq { string name = 1; }
+message StreamRsp { string data = 1; }
