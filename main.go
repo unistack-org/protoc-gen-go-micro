@@ -24,11 +24,6 @@ var (
 )
 
 func main() {
-	opts := &protogen.Options{
-		ParamFunc: flagSet.Set,
-	}
-
-	_ = flagSet.Parse(os.Args[1:])
 
 	if *flagHelp {
 		flagSet.PrintDefaults()
@@ -36,6 +31,10 @@ func main() {
 	}
 
 	g := &Generator{}
+
+	opts := &protogen.Options{
+		ParamFunc: flagSet.Set,
+	}
 
 	opts.Run(g.Generate)
 }
