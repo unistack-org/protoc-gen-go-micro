@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	apioptions "go.unistack.org/micro-proto/v4/api"
-	v2 "go.unistack.org/micro-proto/v4/openapiv2"
-	v3 "go.unistack.org/micro-proto/v4/openapiv3"
+	apioptions "go.unistack.org/micro-proto/v5/api"
+	v2 "go.unistack.org/micro-proto/v5/openapiv2"
+	v3 "go.unistack.org/micro-proto/v5/openapiv3"
 
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"

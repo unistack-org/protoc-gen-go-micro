@@ -24,8 +24,8 @@ import (
 	"strings"
 	"sync"
 
-	"go.unistack.org/micro-proto/v4/api"
-	v3 "go.unistack.org/micro-proto/v4/openapiv3"
+	"go.unistack.org/micro-proto/v5/api"
+	v3 "go.unistack.org/micro-proto/v5/openapiv3"
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"

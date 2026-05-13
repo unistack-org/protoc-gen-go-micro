@@ -3,5 +3,5 @@
 package tools
 
 import (
-	_ "go.unistack.org/micro-proto/v4/graphql"
+	_ "go.unistack.org/micro-proto/v5/graphql"
 )

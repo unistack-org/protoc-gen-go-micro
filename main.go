@@ -24,7 +24,6 @@ var (
 )
 
 func main() {
-
 	if *flagHelp {
 		flagSet.PrintDefaults()
 		return
@@ -123,11 +122,6 @@ func (g *Generator) Generate(plugin *protogen.Plugin) error {
 	}
 
 	if err = g.astGenerate(plugin); err != nil {
-		plugin.Error(err)
-		return err
-	}
-
-	if err = g.fieldAlign(plugin); err != nil {
 		plugin.Error(err)
 		return err
 	}

@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/fatih/structtag"
-	tag_options "go.unistack.org/micro-proto/v4/tag"
+	tag_options "go.unistack.org/micro-proto/v5/tag"
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
 )
@@ -98,7 +98,7 @@ func (g *Generator) astGenerate(plugin *protogen.Plugin) error {
 			return err
 		}
 
-		fp, err := os.OpenFile(file, os.O_WRONLY|os.O_TRUNC, os.FileMode(0644))
+		fp, err := os.OpenFile(file, os.O_WRONLY|os.O_TRUNC, os.FileMode(0o644))
 		if err != nil {
 			return err
 		}
