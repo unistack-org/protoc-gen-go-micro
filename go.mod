@@ -1,6 +1,6 @@
 module go.unistack.org/protoc-gen-go-micro/v5
 
-go 1.24.6
+go 1.25.0
 
 require (
 	github.com/fatih/structtag v1.2.0
@@ -20,7 +20,6 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/net v0.50.0 // indirect
-	golang.org/x/sync v0.19.0 // indirect
-	google.golang.org/grpc v1.79.3 // indirect
+	golang.org/x/sync v0.20.0 // indirect
+	google.golang.org/grpc v1.83.1 // indirect
 )
