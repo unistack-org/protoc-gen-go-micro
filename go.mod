@@ -7,7 +7,7 @@ require (
 	github.com/jhump/protoreflect v1.18.0
 	github.com/vektah/gqlparser/v2 v2.5.33
 	go.unistack.org/micro-proto/v5 v5.0.0
-	google.golang.org/protobuf v1.36.11
+	google.golang.org/protobuf v1.36.12
 )
 
 require (
